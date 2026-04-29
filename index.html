@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fishing App — Lithuania</title>
+<style>
+  :root { color-scheme: light dark; }
+  html, body { margin: 0; padding: 0; min-height: 100vh; font-family: ui-sans-serif, system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+  * { box-sizing: border-box; }
+  button { font-family: inherit; }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<!-- data + domain logic -->
+<script src="data.js"></script>
+<!-- UI + frames -->
+<script type="text/babel" src="ui.jsx"></script>
+<script type="text/babel" src="map.jsx"></script>
+<script type="text/babel" src="screens.jsx"></script>
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel" src="android-frame.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+
+<script type="text/babel">
+
+const TWEAK_DEFAULTS = {
+  "theme": "nature",
+  "lang": "lt",
+  "mapStyle": "minimal",
+  "ruleDetail": "detailed",
+  "dateOffset": 0
+};
+
+// Prototype date pinned to base then offset so tweaks can move through seasons.
+const BASE_DATE = new Date(2026, 3, 24); // April 24, 2026
+
+function App() {
+  const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+
+  const theme = THEMES[t.theme] || THEMES.nature;
+  const copy = COPY[t.lang] || COPY.lt;
+  const date = React.useMemo(() => {
+    const d = new Date(BASE_DATE);
+    d.setDate(d.getDate() + (t.dateOffset || 0));
+    return d;
+  }, [t.dateOffset]);
+
+  // Per-phone navigation state (iOS + Android can show different screens)
+  const [iosState, setIosState] = React.useState({ tab: 'map', stack: [] });
+  const [androidState, setAndroidState] = React.useState({ tab: 'saved', stack: [{ screen: 'detail', waterbodyId: 'galve' }] });
+
+  const [savedIds, setSavedIds] = React.useState([...SAVED_SPOTS]);
+  const [selectedId, setSelectedId] = React.useState('galve');
+  const [mapStyle, setMapStyle] = React.useState(t.mapStyle);
+  React.useEffect(() => { setMapStyle(t.mapStyle); }, [t.mapStyle]);
+
+  const toggleSave = (id) => setSavedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+
+  // Screen renderer shared by both phones
+  const renderPhoneContent = (state, setState, platform) => {
+    const top = state.stack[state.stack.length - 1];
+
+    const pushDetail = (id) => setState(s => ({ ...s, stack: [...s.stack, { screen: 'detail', waterbodyId: id }] }));
+    const pushSpecies = (id) => setState(s => ({ ...s, stack: [...s.stack, { screen: 'species', speciesId: id }] }));
+    const pop = () => setState(s => ({ ...s, stack: s.stack.slice(0, -1) }));
+
+    if (top && top.screen === 'detail') {
+      const wb = WATERBODIES.find(w => w.id === top.waterbodyId);
+      return <DetailScreen t={copy} theme={theme} lang={t.lang} date={date}
+               setDate={(d) => setTweak('dateOffset', Math.round((d - BASE_DATE) / 86400000))}
+               waterbody={wb} savedIds={savedIds} toggleSave={toggleSave}
+               onBack={pop} onOpenSpecies={pushSpecies}
+               ruleDetail={t.ruleDetail} platform={platform}/>;
+    }
+    if (top && top.screen === 'species') {
+      const sp = SPECIES.find(s => s.id === top.speciesId);
+      return <SpeciesScreen t={copy} theme={theme} lang={t.lang} date={date} species={sp} onBack={pop}/>;
+    }
+
+    // Tab screens
+    if (state.tab === 'map') {
+      return <MapScreen t={copy} theme={theme} lang={t.lang}
+               date={date} setDate={(d) => setTweak('dateOffset', Math.round((d - BASE_DATE) / 86400000))}
+               mapStyle={mapStyle} setMapStyle={(s) => { setMapStyle(s); setTweak('mapStyle', s); }}
+               selectedId={selectedId} setSelectedId={setSelectedId}
+               savedIds={savedIds}
+               onOpenDetail={pushDetail} platform={platform}/>;
+    }
+    if (state.tab === 'saved') {
+      return <SavedScreen t={copy} theme={theme} lang={t.lang} date={date}
+               savedIds={savedIds} onOpenDetail={pushDetail}/>;
+    }
+    if (state.tab === 'log') {
+      return <LogScreen t={copy} theme={theme} lang={t.lang} date={date}/>;
+    }
+    return <MoreScreen t={copy} theme={theme} lang={t.lang}/>;
+  };
+
+  // Background — calm, watercolor-y outdoor gradient
+  const pageBg = t.theme === 'dark' ? '#0f1310'
+               : t.theme === 'marine' ? 'linear-gradient(135deg, #dde9ea 0%, #c7dadc 100%)'
+               : t.theme === 'light' ? '#e9e9e7'
+               : 'linear-gradient(135deg, #ecead9 0%, #d8dcc3 100%)';
+
+  return (
+    <div style={{
+      minHeight: '100vh', width: '100%',
+      background: pageBg,
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      padding: '40px 20px 60px', gap: 40,
+    }}>
+      {/* Top title strip */}
+      <div style={{ textAlign: 'center', maxWidth: 900 }}>
+        <div style={{ fontSize: 12, color: theme.inkSubtle, letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 600 }}>
+          {t.lang === 'lt' ? 'Prototipas · iOS + Android' : 'Prototype · iOS + Android'}
+        </div>
+        <div style={{ fontSize: 34, fontWeight: 700, color: theme.ink, letterSpacing: '-0.025em', marginTop: 6, fontFamily: 'ui-sans-serif, system-ui' }}>
+          {t.lang === 'lt' ? 'Žvejyba Lietuvoje' : 'Fishing in Lithuania'}
+        </div>
+        <div style={{ fontSize: 14, color: theme.inkMuted, marginTop: 6, maxWidth: 560, margin: '6px auto 0', lineHeight: 1.5 }}>
+          {t.lang === 'lt'
+            ? 'Kur galima žvejoti šiandien, išsaugotos vietos, ir kokios žuvys gyvena pasirinktame vandens telkinyje.'
+            : 'Where you can fish today, saved spots, and which fish live in each water body.'}
+        </div>
+      </div>
+
+      {/* Two phones side by side */}
+      <div style={{ display: 'flex', gap: 48, flexWrap: 'wrap', justifyContent: 'center', alignItems: 'flex-start' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+          <div style={{ fontSize: 11, color: theme.inkSubtle, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 600 }}>
+            iOS · iPhone
+          </div>
+          <IOSDevice width={390} height={780} dark={t.theme === 'dark'}>
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: theme.bg }}>
+              {/* Spacer for iOS status bar + dynamic island (absolute-positioned in frame) */}
+              <div style={{ height: 54, flexShrink: 0, background: theme.bg }}/>
+              <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+                {renderPhoneContent(iosState, setIosState, 'ios')}
+              </div>
+              <TabBar t={copy} theme={theme}
+                active={iosState.tab}
+                setActive={(tab) => setIosState({ tab, stack: [] })}
+                platform="ios"/>
+              <div style={{ padding: '6px 0 10px', display: 'flex', justifyContent: 'center', background: theme.surface }}>
+                <div style={{ width: 134, height: 5, borderRadius: 3, background: theme.ink, opacity: 0.8 }}/>
+              </div>
+            </div>
+          </IOSDevice>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+          <div style={{ fontSize: 11, color: theme.inkSubtle, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 600 }}>
+            Android · Material 3
+          </div>
+          <AndroidDevice width={390} height={780} dark={t.theme === 'dark'}>
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: theme.bg }}>
+              <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+                {renderPhoneContent(androidState, setAndroidState, 'android')}
+              </div>
+              <TabBar t={copy} theme={theme}
+                active={androidState.tab}
+                setActive={(tab) => setAndroidState({ tab, stack: [] })}
+                platform="android"/>
+            </div>
+          </AndroidDevice>
+        </div>
+      </div>
+
+      {/* Footer hint */}
+      <div style={{
+        fontSize: 11, color: theme.inkSubtle, textAlign: 'center', maxWidth: 520,
+        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', letterSpacing: '0.02em',
+      }}>
+        {t.lang === 'lt'
+          ? 'Rodomi du įrenginiai vienu metu — spauskite ant bet kurio, kad naviguotumėte. Taisyklių logika paremta viešai prieinamomis mėgėjų žvejybos taisyklėmis; duomenys supaprastinti prototipui.'
+          : 'Two devices shown simultaneously — tap on either to navigate. Rules logic derived from publicly available angler regulations; data simplified for the prototype.'}
+      </div>
+
+      {/* Tweaks panel */}
+      <TweaksPanel title="Tweaks">
+        <TweakSection label={t.lang === 'lt' ? 'Tema' : 'Theme'}/>
+        <TweakRadio label="Palette" value={t.theme}
+          options={['nature', 'light', 'dark', 'marine']}
+          onChange={(v) => setTweak('theme', v)}/>
+
+        <TweakSection label={t.lang === 'lt' ? 'Kalba' : 'Language'}/>
+        <TweakRadio label="Lang" value={t.lang}
+          options={['lt', 'en']}
+          onChange={(v) => setTweak('lang', v)}/>
+
+        <TweakSection label={t.lang === 'lt' ? 'Žemėlapis' : 'Map'}/>
+        <TweakRadio label="Style" value={t.mapStyle}
+          options={['minimal', 'topographic', 'satellite']}
+          onChange={(v) => setTweak('mapStyle', v)}/>
+
+        <TweakSection label={t.lang === 'lt' ? 'Taisyklės' : 'Rules display'}/>
+        <TweakRadio label="Detail" value={t.ruleDetail}
+          options={['simple', 'detailed']}
+          onChange={(v) => setTweak('ruleDetail', v)}/>
+
+        <TweakSection label={t.lang === 'lt' ? 'Data' : 'Date'}/>
+        <TweakSlider label={fmtFullDate(date, t.lang)} value={t.dateOffset}
+          min={-60} max={240} step={1} unit="d"
+          onChange={(v) => setTweak('dateOffset', v)}/>
+      </TweaksPanel>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

@@ -1,0 +1,204 @@
+# Phase 3 — Make every water body click open the curated DetailScreen
+
+## Context
+
+The existing UX is the design — we're not redesigning it. Today only the 10 curated water bodies route to `DetailScreen` on tap; everything else shows a placeholder card on the map. The goal is to make **any** tappable water body land on the same `DetailScreen` flow, with the rules surface there showing the full zvejogidas.lt §11 ruleset, the "can I fish today" verdict, and (for the curated 10) the body-specific overrides on top. The map itself stays exactly as-is — same tile style, same green/amber/red curated overlays.
+
+User's reference layout for the rules surface lives at `C:\Users\ITwork\dev\fishingapp\map_ex.png` and `C:\Users\ITwork\dev\fishingapp\map_ex2.png`. The implementer needs to open those locally before finalising the rules-card layout — they govern the visual.
+
+Out of scope: amateur/limited section split (drop it everywhere), map tile tinting, new tabs, schema rework.
+
+## Shape of the change
+
+```mermaid
+flowchart LR
+  subgraph Tap["Map tap"]
+    Cur["Curated tile<br/>(one of 10)"]
+    NonCur["Non-curated tile<br/>(MapTiler feature)"]
+  end
+
+  subgraph Resolve["WaterBody resolver (new)"]
+    Synth["resolveWaterBody(id, tileProps?)<br/>→ curated record OR<br/>synthesised stub<br/>{id, name, geometry, species: []}"]
+  end
+
+  subgraph Detail["DetailScreen (existing screen, extended)"]
+    Header["Header (name, today verdict)"]
+    Rules["RulesTab"]
+    Species["SpeciesTab"]
+    Info["InfoTab"]
+  end
+
+  subgraph Components["Shared (new)"]
+    TVB["&lt;TodaysVerdictBanner&gt;"]
+    NRC["&lt;NationalRulesCard&gt;"]
+  end
+
+  subgraph Data["data/rules + data/species"]
+    NSR["NATIONAL_SPECIES_RULES<br/>(~21 species, flat)"]
+    WBR["WATER_BODY_RULES<br/>(curated 10)"]
+    GES["getEffectiveSpeciesRule"]
+    GDV["getDailyVerdict (new)"]
+  end
+
+  Cur --> Synth
+  NonCur --> Synth
+  Synth --> Detail
+
+  Header --> TVB
+  Rules --> TVB
+  Rules --> NRC
+
+  TVB --> GDV
+  NRC --> GES
+  NSR --> GES
+  WBR --> GES
+  NSR --> GDV
+  WBR --> GDV
+```
+
+The new pieces are: a tiny `<TodaysVerdictBanner>`, a `<NationalRulesCard>` (one unified table, no amateur/limited split), a `resolveWaterBody` helper that synthesises a stub `WaterBody` for non-curated tiles, one new engine helper `getDailyVerdict`, and the species/rule data expansion. Everything else is wiring.
+
+## Data: expand species + national rules to full §11 coverage
+
+All entries from zvejogidas.lt §11.1 (closures), §11.3 (sizes/bag), §6 (free fishing days), §10 (gear/weight cap). One flat set — **no section field**. Add to `mobile/src/data/species.ts` and `mobile/src/data/rules/national.ts` together (every species needs both the `Species` browse record and a `NationalSpeciesRule` for the engine).
+
+New entries on top of today's 8:
+
+| Species (LT / EN) | Closure (§11.1) | Min size cm (§11.3) | Bag |
+|---|---|---|---|
+| Salatis (asp) | Apr 1 – May 15 | 55 | 2 |
+| Kiršlys (grayling) | Mar 1 – May 15 | 30 | 2 |
+| Vėgėlė (burbot) | Dec 15 – Jan 31 (year-wrap) | 45 | 3 |
+| Ungurys (eel) | — | — | 3 (forbidden in Kuršių marios — body override) |
+| Žiobris (vimba) | May 15 – Jun 15 | 30 | 5 |
+| Šapalas (chub) | — | 30 | 5 |
+| Meknė (ide) | — | 30 | 5 |
+| Karpis (carp) | — | 40 | 5 |
+| Lašiša (Atlantic salmon) | per licence | 65 | per licence |
+| Šlakys (sea trout) | per licence | 65 | per licence |
+| Sykas (whitefish) | Oct 1 – Dec 31 | 40 | per licence |
+| Upinė nėgė (river lamprey) | — | — | per licence |
+| Siauražnyplis vėžys (narrow-clawed crayfish) | Oct 15 – Jul 15 (year-wrap) | 10 | gear-restricted |
+
+Cite section numbers in `notes` / `source` per entry. Update the `atnaujinta` constant in `national.ts` to match the date stamped on zvejogidas.lt at the time of import.
+
+Body overrides to add/confirm on existing `WATER_BODY_RULES`:
+- Curonian Lagoon: `dailyWeightCapKg: 7`, eel `speciesOverrides` entry with `dailyBagLimit: 0` and a "forbidden — §11.1.20" note.
+- Galvė: existing `blanketClosures` entry kept; verify reason text + source URL.
+- Any rivers waiving pike `minSizeCm` (per §11.3) get `speciesOverrides` entries with `minSizeCm: null`.
+
+## Engine: one helper
+
+`mobile/src/data/rules/index.ts`:
+
+```ts
+export function getDailyVerdict(
+  waterBodyId: string | null,   // null → national defaults only
+  date: Date,
+): {
+  open: EffectiveSpeciesRule[];
+  closed: EffectiveSpeciesRule[];
+  blanketReason: ClosureWindow | null;
+};
+```
+
+Iterate `NATIONAL_SPECIES_RULES`, call existing `getEffectiveSpeciesRule(s.speciesId, waterBodyId ?? '__national__', date)` per species, partition by `status`. Read `getWaterBodyRules(waterBodyId)?.blanketClosures` separately and match `date` for `blanketReason`. `getEffectiveSpeciesRule` already falls back cleanly when the id is unknown — no changes needed there.
+
+## Routing: any tap lands on DetailScreen
+
+Today's flow: curated tap → `router.push('/waterbody/' + id)` → `app/waterbody/[id].tsx` looks the id up in `WATER_BODIES` → renders `DetailScreen`. Non-curated tap → in-map card with a placeholder.
+
+Change:
+1. **`mobile/src/data/waterbodies.ts`** (or wherever `WATER_BODIES` lives): add a `resolveWaterBody(id, tileProps?)` helper. Returns the curated record if `id` matches; otherwise returns a synthesised stub:
+   ```ts
+   {
+     id,                         // stable id from MapTiler tile (osm_id or name slug)
+     name: tileProps.name_lt ?? tileProps.name,
+     nameEn: tileProps.name_en ?? tileProps.name,
+     type: tileProps.class === 'river' ? 'river' : 'lake',
+     geometry: tileProps.geometry,
+     species: [],                // empty → SpeciesTab falls back to national list
+     curated: false,             // new flag
+   }
+   ```
+2. **`mobile/src/screens/MapScreen.tsx`**: replace the non-curated `selectedCard` rendering with the same `router.push('/waterbody/' + id)` call the curated branch uses. Pass the tile's `name`, `name_en`, `class`, and `osm_id` as nav params so the detail route can synthesise without re-querying the tile.
+3. **`app/waterbody/[id].tsx`**: read params, call `resolveWaterBody(id, params)`, render `DetailScreen` with the resolved body.
+
+Stable id strategy for non-curated bodies: prefer `osm:` + `osm_id` from the MapTiler tile; if absent, fall back to a slug of `name + bbox-center`. Document this in `resolveWaterBody`.
+
+## DetailScreen: accommodate ad-hoc bodies + add the rules surface
+
+`mobile/src/screens/DetailScreen.tsx`:
+
+- **Header**: existing layout; add `<TodaysVerdictBanner waterBodyId={wb.id} date={date} />` directly under the title for both curated and ad-hoc bodies.
+- **RulesTab**: rebuild as
+  1. Per-body overrides block — render `getWaterBodyRules(wb.id)` only if it returns non-null. List `blanketClosures` (reason + dates + source) and any `speciesOverrides` deltas vs national. Skip the block silently for ad-hoc bodies.
+  2. `<NationalRulesCard date={date} waterBodyId={wb.id} lang={lang} />`.
+- **SpeciesTab**: when `wb.species.length === 0` (ad-hoc), render the full national species list from `NATIONAL_SPECIES_RULES` instead of the curated subset. Keep the existing per-species row layout.
+- **InfoTab**: when `wb.curated === false`, render a short "No curated profile for this water body — national rules apply" notice in place of the curated lake stats.
+
+The 12 existing call sites of `getStatus` / `getSpeciesStatus` keep their signatures; `getEffectiveSpeciesRule(s.id, wb.id, date)` is what powers the rules card.
+
+## Components
+
+### `<TodaysVerdictBanner>` — `mobile/src/components/TodaysVerdictBanner.tsx`
+
+Props: `{ waterBodyId: string | null; date: Date }`. Reads `getDailyVerdict(...)`. Three states:
+- `blanketReason !== null` → red, "Visos rūšys uždarytos: {reason.lt|en}".
+- `closed.length > 0` → amber, "Šiandien uždaryta: {names}" (truncate to N, "+k more").
+- otherwise → green, "Šiandien atvira visoms rūšims".
+
+Colours from `theme.success / warning / danger / *Soft`. Translations follow the same `lang` pattern used elsewhere.
+
+### `<NationalRulesCard>` — `mobile/src/components/NationalRulesCard.tsx`
+
+Props: `{ date: Date; waterBodyId?: string; lang: 'lt' | 'en' }`. SVG via `react-native-svg` 15.12.1.
+
+**Visual layout governed by `map_ex.png` and `map_ex2.png` — implementer must view both before settling component layout, spacing, hatch density, and column proportions.** No amateur/limited split — render one unified species table.
+
+Data inputs the component must surface:
+- Header banner: weight cap text from `NATIONAL_RULES.defaultDailyWeightCapKg` (5 kg) plus the Curonian carve-out (7 kg). When `waterBodyId` resolves to a body with its own `dailyWeightCapKg`, show the body's value primary and the national one as the contrast.
+- Free-fishing days from `NATIONAL_RULES.freeFishingDates`.
+- Gear summary from `NATIONAL_RULES.gear`.
+- Species rows: one per `NATIONAL_SPECIES_RULES` entry, after applying the body's overrides via `getEffectiveSpeciesRule(s.speciesId, waterBodyId ?? '__national__', date)`. Each row shows: name + Latin, the closure window(s) drawn against a 12-month axis, bag, min size, max size, notes.
+- Closure rendering: hatched diagonal rect, x-position `monthIndex + (day-1)/daysInMonth(month)`. Year-wrapping windows split into two rects (Dec → year end; year start → Jan).
+- Today indicator: thin vertical line at today's column position; rows where `activeClosure !== null` get a "closed today" tag in the rightmost column.
+- Footer: source URL + `atnaujinta` date constant from `national.ts`.
+
+LT month headers: Sausis · Vasaris · Kovas · Balandis · Gegužė · Birželis · Liepa · Rugpjūtis · Rugsėjis · Spalis · Lapkritis · Gruodis. EN swap when `lang === 'en'`. Right-column headers per ref photos.
+
+## Files touched
+
+- `mobile/src/data/species.ts` — +13 species records.
+- `mobile/src/data/rules/national.ts` — +13 `NationalSpeciesRule` entries; bump `atnaujinta`.
+- `mobile/src/data/rules/waterbodies.ts` — Curonian Lagoon `dailyWeightCapKg: 7` + eel override; verify Galvė; add any river pike-minSize waivers per §11.3.
+- `mobile/src/data/rules/index.ts` — add `getDailyVerdict`; export `EffectiveSpeciesRule` if not already.
+- `mobile/src/data/waterbodies.ts` — add `resolveWaterBody(id, tileProps?)` returning curated record or synthesised stub with `curated: false`.
+- `mobile/src/components/TodaysVerdictBanner.tsx` — new.
+- `mobile/src/components/NationalRulesCard.tsx` — new; layout per `map_ex.png` + `map_ex2.png`.
+- `mobile/src/screens/MapScreen.tsx` — non-curated tap path navigates to `/waterbody/[id]` with tile props as params; remove the placeholder card.
+- `mobile/src/screens/DetailScreen.tsx` — header gets `<TodaysVerdictBanner>`; `RulesTab` rebuilt; `SpeciesTab` falls back to national list when `wb.species` is empty; `InfoTab` shows the ad-hoc notice when `wb.curated === false`.
+- `app/waterbody/[id].tsx` — read tile props from params, call `resolveWaterBody`, pass result into `DetailScreen`.
+
+Untouched: `LithuaniaMapReal.tsx`, `LithuaniaMap.tsx`, `SavedScreen.tsx`, `SpeciesScreen.tsx`, the curated colour overlays, the map base style, `getStatus` / `getSpeciesStatus` signatures.
+
+## Implementation order
+
+1. Species + rule data expansion — type-checks before touching anything else.
+2. `getDailyVerdict` helper.
+3. `resolveWaterBody` helper + ad-hoc stub shape.
+4. `<TodaysVerdictBanner>` (small, easy to eyeball).
+5. **Open `map_ex.png` and `map_ex2.png` locally**, then build `<NationalRulesCard>` against them.
+6. Wire `MapScreen` non-curated tap → navigation; pass tile props as params.
+7. `app/waterbody/[id].tsx` — accept ad-hoc params, resolve, render.
+8. `DetailScreen` — banner + new `RulesTab` body + `SpeciesTab`/`InfoTab` fallbacks.
+9. Visual pass against the ref photos and against the existing curated detail.
+
+## Verification
+
+- `npx tsc --noEmit` and `npm run lint` clean.
+- Tap any non-curated lake or river → lands on full `DetailScreen` with the body's name in the header, today's verdict banner, full rules card with all ~21 species, species tab listing the national set, info tab showing the "no curated profile" notice.
+- Tap one of the curated 10 → exact same layout as today, plus: header now has the verdict banner, RulesTab now opens with overrides block (e.g. Galvė winter, Curonian 7 kg + eel ban) followed by the rules card with body-effective values.
+- Cycle `useApp().date` through 2026-01-15, 2026-03-01, 2026-04-25, 2026-07-15, 2026-12-20: banner state and the today indicator inside the card move; hatched closure bars stay put; year-wrap rendering for burbot (Dec 15 – Jan 31) and crayfish (Oct 15 – Jul 15) shows a rect on each end.
+- Side-by-side compare with `C:\Users\ITwork\dev\fishingapp\map_ex.png` and `map_ex2.png`: column proportions, hatch density, header banner, footer citation.
+- Map home screen (`LithuaniaMapReal`) is pixel-identical to before — same tile style, same curated overlays.

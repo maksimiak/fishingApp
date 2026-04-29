@@ -1,0 +1,17 @@
+zvejybosgidas.lt featuers that we lack:
+
+1. Valites nuleidimo vieta ezeruose (done)
+2. vyke izuvinimai (done)
+3. Plaukiojimo priemonių su varikliais naudojimo kalendorius.
+4. Masalu automatai
+
+
+TODO for the app:
+
+1. Gather/generate photos for every fish type.
+2. Gather/generate photos for lake/river to show in bottom UI 
+3. Solve that all lakes are shown
+4. Generate app icon
+5. Port https://www.e-tar.lt/portal/lt/legalAct/TAR.FEC90E6937D4/asr (actuall rules into one of the tabs and remove Dienynas)
+6. Isnuomotas/neisnuomotas ezeras
+

@@ -1,0 +1,27 @@
+Each iteration I am asking you the same thing and you don't deliver it fully. All I want is these points working.
+I want u to deliver it full this time without random deviations and random nonsense.
+
+Main points:
+- Look at https://uetk.biip.lt/zemelapis/
+- This is correct: I see exactly what you're going for — the Geoportal "Topografinis pilkas" look: gray topo base, every lake as a bold blue polygon, every river as a blue line, and clearly readable italic names. No status colors on the map. Reference photos can be found C:\Users\ITwork\dev\fishingapp\map_ex.png and map_ex2.png.
+- There shall be no legend on the map.
+- Route every tapthrough the same bottom-card UX before navigating.
+- Make every river/lake tappable with bold blue polygon as discussed (every river as a blue line). 
+- All water bodies shall be curated -> tapping on them gives bottom-card UX card and when u press on card it shows relavant info.
+- All rules shall be derived from https://zvejogidas.lt/zvejybos-taisykles.
+- Rules derived from https://zvejogidas.lt/zvejybos-taisykles shall be transformed to code logic and used to display information when lake/river is opened. This is very important point.
+- Search bar on top shall be able to find any river/lake in Lithuania. -> When selected takes you to water body and shows UI card on the bottom. This currently doesnt work.
+- On tap lake/river get white outline (optional)
+- When opening UI on the bottom you are taken in detail overview. I want this to WORK WITH EVERY WATER BODY.
+- C:\Users\ITwork\dev\fishingapp\info_map -> This shows map info that u can reuse from https://uetk.biip.lt/zemelapis/
+
+Current issues:
+1. No white outline when pressed on most lakes/rivers. Its very unstable. (optional, was when we didnt use uetk, impl uetk) 
+2. No names shown for lakes, rivers
+3. When selecting lake/river from search it doesnt take you to it and doesnt open UI card.
+4. No lake/river names are visible. You render something incorrectly.
+5. Some lakes are clickable and show name some dont. Its very unstable. 
+
+MAYBE there is a map that we can re-use? For water bodies?? -> https://uetk.biip.lt/zemelapis/
+
+Do not overcomplicate things and suggest anything else that was not discussed with me. Just do what I asked you.
