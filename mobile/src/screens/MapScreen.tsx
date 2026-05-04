@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { View, Text, Pressable, TextInput, StyleSheet } from 'react-native';
+import { View, Text, Pressable, TextInput, StyleSheet, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
+import { BlurView } from 'expo-blur';
 import { useApp } from '../state/AppState';
 import { theme } from '../theme/colors';
 import {
@@ -64,6 +65,7 @@ export function MapScreen() {
   const router = useRouter();
   const [selected, setSelected] = useState<WaterBody | null>(null);
   const [query, setQuery] = useState('');
+  const [searchFocused, setSearchFocused] = useState(false);
   const mapHandleRef = useRef<LithuaniaMapRealHandle | null>(null);
 
   const status = selected ? getStatus(selected, date) : null;
@@ -83,6 +85,7 @@ export function MapScreen() {
             setSelected(wb);
             mapHandleRef.current?.flyTo(rec.lng, rec.lat, rec.kind === 'river' ? 10 : 11.5);
             setQuery('');
+            setSearchFocused(false);
           },
         });
       }
@@ -96,52 +99,79 @@ export function MapScreen() {
     router.push({ pathname: '/waterbody/[id]', params: { id, ...rest } });
   };
 
+  const SearchBarBackground = Platform.OS === 'ios' ? BlurView : View;
+  const searchBarBgProps = Platform.OS === 'ios' 
+    ? { intensity: 60, tint: 'light' as const }
+    : {};
+
   return (
     <View style={s.root}>
+      {/* Floating Header */}
       <View style={s.header}>
-        <Text style={s.eyebrow}>{fmtFullDate(date, lang)}</Text>
-        <Text style={s.title}>{lang === 'lt' ? 'Lietuvos vandenys' : 'Lithuanian waters'}</Text>
+        <View style={s.headerContent}>
+          <Text style={s.eyebrow}>{fmtFullDate(date, lang)}</Text>
+          <Text style={s.title}>{lang === 'lt' ? 'Lietuvos vandenys' : 'Lithuanian waters'}</Text>
+        </View>
       </View>
 
+      {/* Floating Search Bar */}
       <View style={s.searchWrap}>
-        <View style={s.searchBar}>
-          <IconSearch color={theme.inkSubtle} size={18} />
+        <SearchBarBackground 
+          {...searchBarBgProps}
+          style={[
+            s.searchBar,
+            searchFocused && s.searchBarFocused,
+            Platform.OS !== 'ios' && s.searchBarAndroid,
+          ]}
+        >
+          <IconSearch color={searchFocused ? theme.accent : theme.inkSubtle} size={18} />
           <TextInput
             placeholder={t.search}
             placeholderTextColor={theme.inkSubtle}
             value={query}
             onChangeText={setQuery}
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setSearchFocused(false)}
             style={s.searchInput}
             autoCorrect={false}
             autoCapitalize="none"
           />
           {query.length > 0 && (
-            <Pressable onPress={() => setQuery('')} hitSlop={8}>
-              <IconX color={theme.inkSubtle} size={16} />
+            <Pressable 
+              onPress={() => setQuery('')} 
+              hitSlop={12}
+              style={s.clearButton}
+            >
+              <IconX color={theme.inkMuted} size={14} />
             </Pressable>
           )}
-        </View>
+        </SearchBarBackground>
       </View>
 
+      {/* Search Results Dropdown */}
       {query.length > 0 && (
         <View style={s.searchResults}>
           {searchHits.map((hit, i) => (
             <Pressable
               key={`${hit.id}-${i}`}
               onPress={hit.pick}
-              style={[s.searchRow, { borderBottomWidth: i < searchHits.length - 1 ? 1 : 0 }]}
+              style={({ pressed }) => [
+                s.searchRow,
+                { borderBottomWidth: i < searchHits.length - 1 ? 1 : 0 },
+                pressed && s.searchRowPressed,
+              ]}
             >
               <View style={s.dot} />
-              <View style={{ flex: 1 }}>
+              <View style={s.searchRowContent}>
                 <Text style={s.searchName} numberOfLines={1}>{hit.name}</Text>
                 <Text style={s.searchRegion} numberOfLines={1}>{hit.subtitle}</Text>
               </View>
-              <IconChevron color={theme.inkSubtle} size={14} />
+              <IconChevron color={theme.inkSubtle} size={12} />
             </Pressable>
           ))}
           {searchHits.length === 0 && (
-            <View style={{ padding: 14 }}>
-              <Text style={{ color: theme.inkSubtle, textAlign: 'center', fontSize: 13 }}>
+            <View style={s.noResults}>
+              <Text style={s.noResultsText}>
                 {lang === 'lt' ? 'Nieko nerasta' : 'No results'}
               </Text>
             </View>
@@ -149,6 +179,7 @@ export function MapScreen() {
         </View>
       )}
 
+      {/* Map Container */}
       <View style={s.mapWrap}>
         <LithuaniaMapReal
           onSelectUetk={(info) => {
@@ -159,23 +190,29 @@ export function MapScreen() {
         />
       </View>
 
+      {/* Selected Water Body Card */}
       {selected && status && (
-        <Pressable style={s.selectedCard} onPress={openDetail}>
+        <Pressable 
+          style={({ pressed }) => [s.selectedCard, pressed && s.selectedCardPressed]} 
+          onPress={openDetail}
+        >
           <View style={s.selectedIconBox}>
-            <IconLocation color={theme.accent} size={20} />
+            <IconLocation color={theme.accent} size={22} />
           </View>
-          <View style={{ flex: 1 }}>
+          <View style={s.selectedContent}>
             <Text style={s.selectedName} numberOfLines={1}>
               {(lang === 'lt' ? selected.nameLt : selected.nameEn) || hintForType(selected.type, t)}
             </Text>
             <Text style={s.selectedRegion} numberOfLines={1}>
               {(lang === 'lt' ? selected.region.lt : selected.region.en) || hintForType(selected.type, t)}
             </Text>
-            <View style={{ marginTop: 6 }}>
+            <View style={s.statusRow}>
               <StatusChip status={status.status} size="sm" />
             </View>
           </View>
-          <IconChevron color={theme.inkSubtle} size={14} />
+          <View style={s.chevronWrap}>
+            <IconChevron color={theme.inkMuted} size={14} />
+          </View>
         </Pressable>
       )}
     </View>
@@ -183,72 +220,189 @@ export function MapScreen() {
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: theme.bg },
-  header: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10 },
-  eyebrow: { fontSize: 11, color: theme.inkSubtle, letterSpacing: 1, textTransform: 'uppercase', fontWeight: '600' },
-  title: { fontSize: 22, fontWeight: '700', color: theme.ink, marginTop: 2 },
-  searchWrap: { paddingHorizontal: 16, paddingBottom: 10 },
+  root: { 
+    flex: 1, 
+    backgroundColor: theme.bg,
+  },
+  header: { 
+    paddingHorizontal: 20, 
+    paddingTop: 16, 
+    paddingBottom: 12,
+  },
+  headerContent: {
+    gap: 2,
+  },
+  eyebrow: { 
+    fontSize: 12, 
+    color: theme.accent, 
+    letterSpacing: 0.5, 
+    textTransform: 'uppercase', 
+    fontWeight: '600',
+  },
+  title: { 
+    fontSize: 28, 
+    fontWeight: '700', 
+    color: theme.ink, 
+    letterSpacing: -0.5,
+  },
+  searchWrap: { 
+    paddingHorizontal: 20, 
+    paddingBottom: 12,
+  },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    backgroundColor: theme.card,
-    borderColor: theme.cardBorder,
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-  },
-  searchInput: { flex: 1, color: theme.ink, fontSize: 14, padding: 0 },
-  searchResults: {
-    marginHorizontal: 16,
-    marginBottom: 8,
-    backgroundColor: theme.card,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: theme.cardBorder,
-    overflow: 'hidden',
-  },
-  searchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 10,
     gap: 10,
-    borderBottomColor: theme.divider,
-  },
-  dot: { width: 8, height: 8, borderRadius: 999, backgroundColor: theme.accent },
-  searchName: { fontSize: 14, fontWeight: '500', color: theme.ink },
-  searchRegion: { fontSize: 11, color: theme.inkSubtle },
-  mapWrap: {
-    flex: 1,
-    marginHorizontal: 12,
     borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: theme.cardBorder,
-    backgroundColor: theme.card,
-    minHeight: 280,
+    borderColor: theme.border,
   },
-  selectedCard: {
-    margin: 12,
-    marginTop: 10,
-    backgroundColor: theme.card,
-    borderRadius: 14,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: theme.cardBorder,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+  searchBarAndroid: {
+    backgroundColor: theme.surface,
   },
-  selectedIconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 10,
+  searchBarFocused: {
+    borderColor: theme.accent,
+    borderWidth: 1.5,
+  },
+  searchInput: { 
+    flex: 1, 
+    color: theme.ink, 
+    fontSize: 15, 
+    padding: 0,
+    fontWeight: '400',
+  },
+  clearButton: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: theme.surfaceAlt,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  selectedName: { fontSize: 15, fontWeight: '600', color: theme.ink },
-  selectedRegion: { fontSize: 11, color: theme.inkSubtle, marginTop: 1 },
+  searchResults: {
+    marginHorizontal: 20,
+    marginBottom: 12,
+    backgroundColor: theme.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: theme.border,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    gap: 12,
+    borderBottomColor: theme.borderLight,
+  },
+  searchRowPressed: {
+    backgroundColor: theme.surfaceAlt,
+  },
+  searchRowContent: {
+    flex: 1,
+    gap: 2,
+  },
+  dot: { 
+    width: 8, 
+    height: 8, 
+    borderRadius: 4, 
+    backgroundColor: theme.accent,
+  },
+  searchName: { 
+    fontSize: 15, 
+    fontWeight: '500', 
+    color: theme.ink,
+  },
+  searchRegion: { 
+    fontSize: 12, 
+    color: theme.inkMuted,
+  },
+  noResults: {
+    paddingVertical: 20,
+    paddingHorizontal: 14,
+  },
+  noResultsText: {
+    color: theme.inkMuted,
+    textAlign: 'center',
+    fontSize: 14,
+  },
+  mapWrap: {
+    flex: 1,
+    marginHorizontal: 20,
+    borderRadius: 24,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: theme.border,
+    backgroundColor: theme.surface,
+    minHeight: 280,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 3,
+  },
+  selectedCard: {
+    margin: 20,
+    marginTop: 16,
+    marginBottom: 120, // Space for floating tab bar
+    backgroundColor: theme.surface,
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: theme.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 6,
+  },
+  selectedCardPressed: {
+    backgroundColor: theme.surfaceAlt,
+    transform: [{ scale: 0.98 }],
+  },
+  selectedIconBox: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: theme.accentSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selectedContent: {
+    flex: 1,
+    gap: 2,
+  },
+  selectedName: { 
+    fontSize: 17, 
+    fontWeight: '600', 
+    color: theme.ink,
+    letterSpacing: -0.2,
+  },
+  selectedRegion: { 
+    fontSize: 13, 
+    color: theme.inkMuted,
+  },
+  statusRow: {
+    marginTop: 8,
+  },
+  chevronWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: theme.surfaceAlt,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

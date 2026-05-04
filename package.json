@@ -6,5 +6,11 @@
     "dev": "cd mobile && npm run web",
     "start": "cd mobile && npm start",
     "install-mobile": "cd mobile && npm install"
+  },
+  "dependencies": {
+    "expo-blur": "^55.0.14",
+    "expo-router": "^55.0.13",
+    "react": "^19.2.5",
+    "react-native": "^0.85.2"
   }
 }
