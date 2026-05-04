@@ -1,0 +1,10 @@
+{
+  "name": "fishing-app",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "cd mobile && npm run web",
+    "start": "cd mobile && npm start",
+    "install-mobile": "cd mobile && npm install"
+  }
+}
