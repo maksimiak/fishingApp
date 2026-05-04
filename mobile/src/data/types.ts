@@ -37,6 +37,7 @@ export interface WaterBody {
   // false = ad-hoc body synthesised from a MapTiler tile feature; absent or
   // true = curated (hand-authored) record from `WATERBODIES`.
   curated?: boolean;
+  kadastroId?: string;
   leased?: boolean | null;
   avgDepthM?: number | null;
   maxDepthM?: number | null;

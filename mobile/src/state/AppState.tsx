@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useMemo, useCallback } from 'react';
-import { SAVED_SPOTS_DEFAULT } from '../data/waterbodies';
 import { COPY, type CopyDict } from '../data/copy';
 import type { Lang } from '../data/types';
 
@@ -18,7 +17,7 @@ const AppStateContext = createContext<AppStateShape | null>(null);
 
 export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [lang, setLang] = useState<Lang>('lt');
-  const [savedIds, setSavedIds] = useState<string[]>([...SAVED_SPOTS_DEFAULT]);
+  const [savedIds, setSavedIds] = useState<string[]>([]);
   const [date, setDate] = useState<Date>(new Date());
 
   const toggleSave = useCallback((id: string) => {

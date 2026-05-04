@@ -16,10 +16,9 @@ function monthDays(year: number, month: number): (Date | null)[] {
   return days;
 }
 
-function getDayStatus(d: Date): 'open' | 'partial' | 'restricted' {
+function getDayStatus(d: Date): 'open' | 'partial' {
   const closed = SPECIES.filter((sp) => getSpeciesStatus(sp, d) === 'closed').length;
   if (closed === 0) return 'open';
-  if (closed >= 4) return 'restricted';
   return 'partial';
 }
 
@@ -81,10 +80,8 @@ export function CalendarScreen() {
           {cells.map((d, i) => {
             if (!d) return <View key={i} style={{ width: '14.28%', aspectRatio: 1 }} />;
             const st = getDayStatus(d);
-            const bg =
-              st === 'open' ? theme.successSoft : st === 'restricted' ? theme.dangerSoft : theme.warningSoft;
-            const fg =
-              st === 'open' ? theme.success : st === 'restricted' ? theme.danger : theme.warning;
+            const bg = st === 'open' ? theme.successSoft : theme.warningSoft;
+            const fg = st === 'open' ? theme.success : theme.warning;
             const isSelected = d.toDateString() === date.toDateString();
             return (
               <View key={i} style={{ width: '14.28%', aspectRatio: 1, padding: 1.5 }}>
@@ -109,9 +106,8 @@ export function CalendarScreen() {
 
         <View style={s.legend}>
           {[
-            { color: theme.success, label: lang === 'lt' ? 'Atvira' : 'Open' },
-            { color: theme.warning, label: lang === 'lt' ? 'Daliniai' : 'Partial' },
-            { color: theme.danger, label: lang === 'lt' ? 'Apribojimai' : 'Restricted' },
+            { color: theme.success, label: t.canFish },
+            { color: theme.warning, label: t.partial },
           ].map(({ color, label }) => (
             <View key={label} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
               <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: color }} />

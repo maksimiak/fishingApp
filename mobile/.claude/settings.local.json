@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cp \"C:/Users/ITwork/dev/fishingapp/pngs/asp.png\" \"C:/Users/ITwork/dev/fishingapp/mobile/assets/fish/asp.png\")",
+      "Bash(cp \"C:/Users/ITwork/dev/fishingapp/pngs/chub.png\" \"C:/Users/ITwork/dev/fishingapp/mobile/assets/fish/chub.png\")",
+      "Bash(cp \"C:/Users/ITwork/dev/fishingapp/pngs/european_river_lamprey.png\" \"C:/Users/ITwork/dev/fishingapp/mobile/assets/fish/european_river_lamprey.png\")",
+      "Bash(cp \"C:/Users/ITwork/dev/fishingapp/pngs/grayling.png\" \"C:/Users/ITwork/dev/fishingapp/mobile/assets/fish/grayling.png\")",
+      "Bash(cp \"C:/Users/ITwork/dev/fishingapp/pngs/ide.png\" \"C:/Users/ITwork/dev/fishingapp/mobile/assets/fish/ide.png\")",
+      "Bash(node -e \"const s = require\\('./src/data/stocking.json'\\); const keys = Object.keys\\(s\\).slice\\(0,3\\); keys.forEach\\(k => { console.log\\('key:', k\\); console.log\\(JSON.stringify\\(s[k], null, 2\\).slice\\(0, 400\\)\\); console.log\\('---'\\); }\\)\")",
+      "Bash(node -e ' *)",
+      "Bash(npx tsc *)"
+    ]
+  }
+}

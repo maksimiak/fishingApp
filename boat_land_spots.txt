@@ -1,51 +1,51 @@
 Elektrėnų marios ties Elektrėnais - 54.78050004713365, 24.653145536810356
 
-Elektrėnų marios ties Pastrėviu
+Elektrėnų marios ties Pastrėviu - 54.71746083184293, 24.67455425714956
 
 Venta ties Kuršėnais - 55.991891002073444, 22.938333317612713
 
-Kauno marios (ties Rumšiškėm...
+Kauno marios (ties Rumšiškėm... - 54.85889519566811, 24.21468048260249
 
-Kauno marios (ties Grabučiškė...
+Kauno marios (ties Grabučiškė... - 54.89306283076963, 24.145976588304933
 
-Kauno marios (ties Kapitoniškė...
+Kauno marios (ties Kapitoniškė... - 54.83464799561173, 24.218693841562718
 
-Liberiškio tv.
+Liberiškio tv. - 55.70692724466912, 24.112728111912737
 
-Juodžio ež.
+Juodžio ež. - 55.47326831651257, 24.478814864713154
 
-Dusios ež.
+Dusios ež. - 54.26847799049034, 23.72797507567099
 
-Lūksto ež.
+Lūksto ež. - 55.71295636546879, 22.352918479189203
 
-Masčio ež.
+Masčio ež. - 55.97383864311974, 22.2600230639973
 
-Dūrių ež.
+Dūrių ež. - 55.24858202702699, 25.40728696931788
 
-Galuonų ež.
+Galuonų ež. - 55.14572071644447, 25.484644230679883
 
-Siesarties up. ties Molėtais
+Siesarties up. ties Molėtais - 55.231667717636796, 25.44433861965021
 
-Arino ež.
+Arino ež. - 55.07357087177615, 25.669216374144817
 
-Alaušų ež.
+Alaušų ež. - 55.29389821457418, 25.115242295868327
 
-Kupiškio marios (ties Palėvenėl...
+Kupiškio marios (ties Palėvenėl... - 55.898960450123695, 24.998822680911008
 
-Kupiškio marios (ties Vėžionimi...
+Kupiškio marios (ties Vėžionimi... - 55.89830352384402, 25.011341904727885
 
-Kupiškio marios (ties Drūlėnais)
+Kupiškio marios (ties Drūlėnais) - 55.86658621829304, 24.97150425109901
 
-Vištyčio ež.
+Vištyčio ež. - 54.45170633210484, 22.720359336149155
 
-Beržoro ež.
+Beržoro ež. - 56.022902921950724, 21.82661468215503
 
-Platelių ež.
+Platelių ež. - 56.07084094495706, 21.832790631567175
 
-Gondingos tv.
+Gondingos tv. - 55.91180857029748, 21.83348930748688
 
-Gondingos tv.
+Gondingos tv. - 55.908049812717294, 21.794703318645524
 
-Sartų ež.
+Sartų ež. - 55.774426513113426, 25.82266056260374
 
-Antalieptės marios
+Antalieptės marios - 55.6425746948085, 25.930118237502008

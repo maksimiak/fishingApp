@@ -4,7 +4,6 @@ import { useRouter } from 'expo-router';
 import { useApp } from '../state/AppState';
 import { theme } from '../theme/colors';
 import {
-  WATERBODIES,
   makeAdHocWaterBodyId,
   resolveWaterBody,
   type WaterTileProps,
@@ -61,11 +60,9 @@ function uetkToWaterBody(rec: UetkRecord | UetkTapInfo): WaterBody {
 }
 
 export function MapScreen() {
-  const { t, lang, date, savedIds } = useApp();
+  const { t, lang, date } = useApp();
   const router = useRouter();
-  const [selected, setSelected] = useState<WaterBody | null>(
-    () => WATERBODIES.find((w) => w.id === 'galve') ?? null,
-  );
+  const [selected, setSelected] = useState<WaterBody | null>(null);
   const [query, setQuery] = useState('');
   const mapHandleRef = useRef<LithuaniaMapRealHandle | null>(null);
 
@@ -75,28 +72,8 @@ export function MapScreen() {
     const q = query.trim();
     if (q.length === 0) return [];
     const out: { id: string; name: string; subtitle: string; pick: () => void }[] = [];
-    const seen = new Set<string>();
-    // Curated first, exact match boost
-    for (const wb of WATERBODIES) {
-      const display = lang === 'lt' ? wb.nameLt : wb.nameEn;
-      if (display.toLowerCase().includes(q.toLowerCase())) {
-        out.push({
-          id: wb.id,
-          name: display,
-          subtitle: lang === 'lt' ? wb.region.lt : wb.region.en,
-          pick: () => {
-            setSelected(wb);
-            mapHandleRef.current?.flyTo(wb.lng, wb.lat, wb.type === 'river' ? 9.5 : 11);
-            setQuery('');
-          },
-        });
-        seen.add(display.toLowerCase());
-      }
-    }
     if (q.length >= 2) {
-      for (const rec of searchUetk(q, 12)) {
-        if (seen.has(rec.name.toLowerCase())) continue;
-        seen.add(rec.name.toLowerCase());
+      for (const rec of searchUetk(q, 8)) {
         out.push({
           id: rec.id,
           name: rec.name,
@@ -108,10 +85,9 @@ export function MapScreen() {
             setQuery('');
           },
         });
-        if (out.length >= 8) break;
       }
     }
-    return out.slice(0, 8);
+    return out;
   }, [query, lang, t]);
 
   const openDetail = () => {
@@ -175,17 +151,10 @@ export function MapScreen() {
 
       <View style={s.mapWrap}>
         <LithuaniaMapReal
-          selectedId={selected?.id ?? null}
-          onSelectCurated={(id) => {
-            const wb = WATERBODIES.find((w) => w.id === id);
-            if (wb) setSelected(wb);
-          }}
           onSelectUetk={(info) => {
             if (!info) return;
             setSelected(uetkToWaterBody(info));
           }}
-          savedIds={savedIds}
-          lang={lang}
           mapHandleRef={mapHandleRef}
         />
       </View>

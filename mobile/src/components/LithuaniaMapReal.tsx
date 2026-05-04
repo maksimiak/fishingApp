@@ -1,10 +1,9 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { Map, Camera, GeoJSONSource, Layer, type MapRef, type CameraRef, type PressEventWithFeatures } from '@maplibre/maplibre-react-native';
 import type { NativeSyntheticEvent } from 'react-native';
 import Constants from 'expo-constants';
-import { WATERBODIES, LITHUANIA_BOUNDS } from '../data/waterbodies';
-import waterbodiesGeoJson from '../data/waterbodies.geojson.json';
+import { LITHUANIA_BOUNDS } from '../data/waterbodies';
 import uetkLakesGeoJson from '../data/uetk-lakes.geojson.json';
 import uetkRiversGeoJson from '../data/uetk-rivers.geojson.json';
 
@@ -34,38 +33,8 @@ export interface LithuaniaMapRealHandle {
 }
 
 interface Props {
-  selectedId?: string | null;
-  onSelectCurated?: (id: string) => void;
   onSelectUetk?: (info: UetkTapInfo | null) => void;
-  savedIds?: string[];
-  lang?: 'lt' | 'en';
   mapHandleRef?: React.RefObject<LithuaniaMapRealHandle | null>;
-}
-
-type RawCuratedFeature = GeoJSON.Feature<GeoJSON.Geometry, { waterbody_id: string; kind: 'polygon' | 'line' }>;
-
-function useTaggedCurated(selectedId: string | null | undefined) {
-  return useMemo(() => {
-    const polys: GeoJSON.Feature[] = [];
-    const lines: GeoJSON.Feature[] = [];
-    const fc = waterbodiesGeoJson as unknown as GeoJSON.FeatureCollection;
-    for (const raw of fc.features as RawCuratedFeature[]) {
-      const id = raw.properties.waterbody_id;
-      const wb = WATERBODIES.find((w) => w.id === id);
-      if (!wb) continue;
-      const feat: GeoJSON.Feature = {
-        ...raw,
-        properties: { ...raw.properties, selected: id === selectedId },
-      };
-      const t = raw.geometry.type;
-      if (t === 'Polygon' || t === 'MultiPolygon') polys.push(feat);
-      else if (t === 'LineString' || t === 'MultiLineString') lines.push(feat);
-    }
-    return {
-      polys: { type: 'FeatureCollection' as const, features: polys },
-      lines: { type: 'FeatureCollection' as const, features: lines },
-    };
-  }, [selectedId]);
 }
 
 const UETK_LAKES = uetkLakesGeoJson as unknown as GeoJSON.FeatureCollection;
@@ -92,13 +61,7 @@ function uetkTapInfo(feature: GeoJSON.Feature): UetkTapInfo | null {
   };
 }
 
-export function LithuaniaMapReal({
-  selectedId,
-  onSelectCurated = () => {},
-  onSelectUetk,
-  mapHandleRef,
-}: Props) {
-  const { polys, lines } = useTaggedCurated(selectedId);
+export function LithuaniaMapReal({ onSelectUetk, mapHandleRef }: Props) {
   const mapRef = useRef<MapRef>(null);
   const cameraRef = useRef<CameraRef>(null);
   const [adHocSelectedKadastro, setAdHocSelectedKadastro] = useState<string | null>(null);
@@ -114,22 +77,6 @@ export function LithuaniaMapReal({
       if (mapHandleRef) mapHandleRef.current = null;
     };
   }, [mapHandleRef]);
-
-  // When the curated selection changes, drop the ad-hoc highlight.
-  useEffect(() => {
-    if (selectedId) setAdHocSelectedKadastro(null);
-  }, [selectedId]);
-
-  const handleCuratedPress = (e: NativeSyntheticEvent<PressEventWithFeatures>) => {
-    const feat = e.nativeEvent.features?.[0];
-    const id = feat?.properties?.waterbody_id;
-    if (typeof id === 'string') {
-      setAdHocSelectedKadastro(null);
-      onSelectCurated(id);
-      onSelectUetk?.(null);
-      e.stopPropagation?.();
-    }
-  };
 
   const handleUetkPress = (e: NativeSyntheticEvent<PressEventWithFeatures>) => {
     const feat = e.nativeEvent.features?.[0];
@@ -274,50 +221,6 @@ export function LithuaniaMapReal({
           />
         </GeoJSONSource>
 
-        {/* Curated polygons (the 10 we know) — rendered ON TOP in the same blue
-            so visually they're indistinguishable. Some curated bodies (Galvė,
-            Kauno marios, Drūkšiai, Dusios) are missing from this UETK export,
-            so the curated overlay is what makes them visible. Tap on these
-            routes to the curated id so WATER_BODY_RULES overrides apply. */}
-        <GeoJSONSource id="waters-poly" data={polys} onPress={handleCuratedPress}>
-          <Layer
-            id="waters-poly-fill"
-            type="fill"
-            paint={{ 'fill-color': WATER_BLUE, 'fill-opacity': 0.85 }}
-          />
-          <Layer
-            id="waters-poly-outline"
-            type="line"
-            paint={{ 'line-color': WATER_BLUE_DARK, 'line-width': 1.2, 'line-opacity': 0.95 }}
-          />
-          <Layer
-            id="waters-poly-selected"
-            type="line"
-            filter={['==', ['get', 'selected'], true]}
-            paint={{ 'line-color': SELECTED_RING, 'line-width': 3.5, 'line-opacity': 1 }}
-          />
-        </GeoJSONSource>
-
-        {/* Curated rivers (Nemunas, Neris) — same uniform blue. */}
-        <GeoJSONSource id="waters-line" data={lines} onPress={handleCuratedPress}>
-          <Layer
-            id="waters-line-stroke"
-            type="line"
-            paint={{
-              'line-color': WATER_BLUE,
-              'line-width': 3,
-              'line-opacity': 0.95,
-            }}
-            layout={{ 'line-cap': 'round', 'line-join': 'round' }}
-          />
-          <Layer
-            id="waters-line-selected"
-            type="line"
-            filter={['==', ['get', 'selected'], true]}
-            paint={{ 'line-color': SELECTED_RING, 'line-width': 5, 'line-opacity': 1 }}
-            layout={{ 'line-cap': 'round', 'line-join': 'round' }}
-          />
-        </GeoJSONSource>
       </Map>
     </View>
   );

@@ -3,9 +3,7 @@ import { View, Text, ScrollView, Pressable, StyleSheet, Linking, Image } from 'r
 import { useRouter } from 'expo-router';
 import { useApp } from '../state/AppState';
 import { theme } from '../theme/colors';
-import { WATERBODIES } from '../data/waterbodies';
 import { SPECIES } from '../data/species';
-import { NATIONAL_SPECIES_RULES } from '../data/rules/index';
 import { getStatus, getEffectiveSpeciesRule, getForecast, monthDays, fmtDate } from '../data/rules';
 import { StatusChip } from '../components/StatusChip';
 import { FishIcon } from '../components/FishIcon';
@@ -26,6 +24,34 @@ import {
   IconCalendar,
 } from '../components/Icons';
 
+// Maps Lithuanian stocking fish names → species IDs used in this app
+const STOCKING_NAME_TO_SPECIES: Record<string, string> = {
+  lydekos: 'pike',
+  sterkai: 'zander',
+  lynai: 'tench',
+  karpiai: 'carp',
+  unguriai: 'eel',
+  'vėgėlės': 'burbot',
+  'šamai': 'catfish',
+  'lašišos': 'salmon',
+  'šlakiai': 'sea-trout',
+  'margieji upėtakiai': 'trout',
+  sykai: 'whitefish',
+};
+
+function speciesFromStocking(kadastroId: string): string[] {
+  const entry = STOCKING[kadastroId];
+  if (!entry) return [];
+  const ids = new Set<string>();
+  Object.values(entry.byYear).forEach((fishList) =>
+    fishList.forEach((f) => {
+      const id = STOCKING_NAME_TO_SPECIES[f.fish];
+      if (id) ids.add(id);
+    }),
+  );
+  return [...ids];
+}
+
 type Tab = 'biting' | 'rules' | 'info' | 'weather';
 
 interface DetailScreenProps {
@@ -36,16 +62,14 @@ interface DetailScreenProps {
 export function DetailScreen({ id, waterbody: passedWb }: DetailScreenProps) {
   const { t, lang, date, isSaved, toggleSave } = useApp();
   const router = useRouter();
-  const baseWb = passedWb ?? WATERBODIES.find((w) => w.id === id) ?? null;
+  const baseWb = passedWb ?? null;
   const [tab, setTab] = useState<Tab>('biting');
 
   const waterbody = useMemo<WaterBody | null>(() => {
     if (!baseWb) return null;
-    if (baseWb.species.length > 0) return baseWb;
-    return {
-      ...baseWb,
-      species: NATIONAL_SPECIES_RULES.map((r) => r.speciesId),
-    };
+    const kadastroId = baseWb.kadastroId ?? (baseWb.id.startsWith('uetk:') ? baseWb.id.slice(5) : null);
+    const stockingSpecies = kadastroId ? speciesFromStocking(kadastroId) : [];
+    return { ...baseWb, species: stockingSpecies };
   }, [baseWb]);
 
   if (!waterbody) {
@@ -181,15 +205,20 @@ export function DetailScreen({ id, waterbody: passedWb }: DetailScreenProps) {
 function BitingTab({ waterbody }: { waterbody: WaterBody }) {
   const { t, lang, date } = useApp();
   const router = useRouter();
-  const isAdHoc = waterbody.curated === false;
   return (
     <View style={{ gap: 8 }}>
       <View style={{ paddingHorizontal: 2, paddingBottom: 4 }}>
         <Text style={s.sectionEyebrow}>{t.expectedSpecies}</Text>
-        {isAdHoc && (
-          <Text style={{ fontSize: 11, color: theme.inkSubtle, marginTop: 2 }}>{t.generalDataNote}</Text>
-        )}
       </View>
+      {waterbody.species.length === 0 && (
+        <View style={[s.speciesCard, { justifyContent: 'center' }]}>
+          <Text style={{ fontSize: 13, color: theme.inkSubtle, textAlign: 'center', lineHeight: 20 }}>
+            {lang === 'lt'
+              ? 'Šiuo metu nėra informacijos apie tai, kokios žuvys čia galima sugauti.'
+              : 'Currently there is no info on what you can catch here.'}
+          </Text>
+        </View>
+      )}
       {waterbody.species.map((id) => {
         const sp = SPECIES.find((s) => s.id === id)!;
         const eff = getEffectiveSpeciesRule(id, waterbody.id, date);
@@ -308,8 +337,8 @@ function CalendarView({ waterbody }: { waterbody: WaterBody }) {
         {cells.map((d, i) => {
           if (!d) return <View key={i} style={{ width: '14.28%', aspectRatio: 1 }} />;
           const st = getStatus(waterbody, d).status;
-          const bg = st === 'open' ? theme.successSoft : st === 'closed' ? theme.dangerSoft : theme.warningSoft;
-          const fg = st === 'open' ? theme.success : st === 'closed' ? theme.danger : theme.warning;
+          const bg = st === 'open' ? theme.successSoft : theme.warningSoft;
+          const fg = st === 'open' ? theme.success : theme.warning;
           const isSelected = d.toDateString() === date.toDateString();
           return (
             <View key={i} style={{ width: '14.28%', aspectRatio: 1, padding: 1.5 }}>
@@ -336,7 +365,6 @@ function CalendarView({ waterbody }: { waterbody: WaterBody }) {
         {[
           { c: theme.success, l: t.canFish },
           { c: theme.warning, l: t.partial },
-          { c: theme.danger, l: t.cannotFish },
         ].map((x, i) => (
           <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
             <View style={{ width: 7, height: 7, backgroundColor: x.c, borderRadius: 2 }} />
@@ -387,9 +415,10 @@ function InfoTab({ waterbody, typeLabel }: { waterbody: WaterBody; typeLabel: st
     { label: t.fishingPermit, value: '' },
   ];
 
-  const boatSpots = BOAT_SPOTS.filter(
-    (s) => s.waterBodyName.toLowerCase() === waterbody.nameLt.toLowerCase(),
-  );
+  const boatKadastroId = waterbody.id.startsWith('uetk:') ? waterbody.id.slice(5) : null;
+  const boatSpots = boatKadastroId
+    ? BOAT_SPOTS.filter((s) => s.uetkId === boatKadastroId)
+    : [];
 
   return (
     <View style={{ gap: 10 }}>
@@ -470,7 +499,7 @@ function InfoTab({ waterbody, typeLabel }: { waterbody: WaterBody; typeLabel: st
 
       <Pressable
         style={s.moreInfoBtn}
-        onPress={() => Linking.openURL('https://zvejogidas.lt')}
+        onPress={() => Linking.openURL(`https://lt.wikipedia.org/w/index.php?search=${encodeURIComponent(waterbody.nameLt)}`)}
       >
         <Text style={s.moreInfoText}>
           {t.moreInfo} →
