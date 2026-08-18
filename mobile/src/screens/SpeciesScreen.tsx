@@ -18,7 +18,7 @@ export function SpeciesScreen({ id }: { id: string }) {
   if (!species) {
     return (
       <View style={[s.root, { justifyContent: 'center', alignItems: 'center' }]}>
-        <Text style={{ color: theme.ink }}>Not found</Text>
+        <Text style={{ color: theme.ink }}>{t.notFound}</Text>
       </View>
     );
   }

@@ -75,7 +75,7 @@ export function DetailScreen({ id, waterbody: passedWb }: DetailScreenProps) {
   if (!waterbody) {
     return (
       <View style={[s.root, { justifyContent: 'center', alignItems: 'center' }]}>
-        <Text style={{ color: theme.ink }}>Not found</Text>
+        <Text style={{ color: theme.ink }}>{t.notFound}</Text>
       </View>
     );
   }
@@ -116,9 +116,6 @@ export function DetailScreen({ id, waterbody: passedWb }: DetailScreenProps) {
             ) : (
               <IconBookmark color={theme.ink} size={20} />
             )}
-          </Pressable>
-          <Pressable style={s.iconBtn} hitSlop={6}>
-            <IconShare color={theme.ink} size={18} />
           </Pressable>
         </View>
       </View>

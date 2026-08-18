@@ -1,5 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { View, Text, Pressable, TextInput, StyleSheet } from 'react-native';
+import { View, Text, Pressable, TextInput, StyleSheet, Alert } from 'react-native';
+import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { useApp } from '../state/AppState';
 import { theme } from '../theme/colors';
@@ -53,6 +54,9 @@ function uetkToWaterBody(rec: UetkRecord | UetkTapInfo): WaterBody {
     lat: rec.lat,
     lng: rec.lng,
     area: rec.area ?? undefined,
+    avgDepthM: 'avgDepthM' in rec ? rec.avgDepthM : undefined,
+    maxDepthM: 'maxDepthM' in rec ? rec.maxDepthM : undefined,
+    shorelineKm: 'shorelineKm' in rec ? rec.shorelineKm : undefined,
   };
   const id = makeAdHocWaterBodyId(props);
   const wb = resolveWaterBody(id, props);
@@ -64,9 +68,34 @@ export function MapScreen() {
   const router = useRouter();
   const [selected, setSelected] = useState<WaterBody | null>(null);
   const [query, setQuery] = useState('');
+  const [userLocation, setUserLocation] = useState<{ lng: number; lat: number } | null>(null);
+  const [locating, setLocating] = useState(false);
   const mapHandleRef = useRef<LithuaniaMapRealHandle | null>(null);
 
   const status = selected ? getStatus(selected, date) : null;
+
+  const locateMe = async () => {
+    if (locating) return;
+    setLocating(true);
+    try {
+      const { status: perm } = await Location.requestForegroundPermissionsAsync();
+      if (perm !== 'granted') {
+        Alert.alert(
+          lang === 'lt' ? 'Reikalingas leidimas' : 'Permission needed',
+          lang === 'lt'
+            ? 'Leiskite programėlei naudoti jūsų vietą nustatymuose.'
+            : 'Allow FisherMap to use your location in Settings.',
+        );
+        return;
+      }
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const { longitude, latitude } = pos.coords;
+      setUserLocation({ lng: longitude, lat: latitude });
+      mapHandleRef.current?.flyTo(longitude, latitude, 13);
+    } finally {
+      setLocating(false);
+    }
+  };
 
   const searchHits = useMemo<{ id: string; name: string; subtitle: string; pick: () => void }[]>(() => {
     const q = query.trim();
@@ -156,7 +185,15 @@ export function MapScreen() {
             setSelected(uetkToWaterBody(info));
           }}
           mapHandleRef={mapHandleRef}
+          userLocation={userLocation}
         />
+        <Pressable
+          style={[s.locateBtn, locating && { opacity: 0.6 }]}
+          onPress={locateMe}
+          hitSlop={8}
+        >
+          <IconLocation color={userLocation ? '#3b82f6' : theme.ink} size={18} />
+        </Pressable>
       </View>
 
       {selected && status && (
@@ -228,6 +265,24 @@ const s = StyleSheet.create({
     borderColor: theme.cardBorder,
     backgroundColor: theme.card,
     minHeight: 280,
+  },
+  locateBtn: {
+    position: 'absolute',
+    bottom: 46,
+    right: 10,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: theme.card,
+    borderWidth: 1,
+    borderColor: theme.cardBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
   },
   selectedCard: {
     margin: 12,

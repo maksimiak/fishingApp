@@ -63,6 +63,7 @@ export interface CopyDict {
   daysUntil: string;
   dayUntil: string;
   daysTwo: string;
+  notFound: string;
   hintLake: string;
   hintRiver: string;
   hintReservoir: string;
@@ -86,7 +87,7 @@ export interface CopyDict {
 
 export const COPY: Record<Lang, CopyDict> = {
   lt: {
-    appName: 'Žvejoti',
+    appName: 'FisherMap',
     tabs: { map: 'Žemėlapis', rules: 'Taisyklės', more: 'Daugiau' },
     canFish: 'Galima žvejoti',
     cannotFish: 'Žvejoti draudžiama',
@@ -148,6 +149,7 @@ export const COPY: Record<Lang, CopyDict> = {
     daysUntil: 'dienų',
     dayUntil: 'diena',
     daysTwo: 'dienos',
+    notFound: 'Nerasta',
     hintLake: 'Ežeras',
     hintRiver: 'Upė',
     hintReservoir: 'Marios',
@@ -169,7 +171,7 @@ export const COPY: Record<Lang, CopyDict> = {
     stockingTotal: 'Bendras kiekis',
   },
   en: {
-    appName: 'Fishing',
+    appName: 'FisherMap',
     tabs: { map: 'Map', rules: 'Rules', more: 'More' },
     canFish: 'Fishing allowed',
     cannotFish: 'Fishing prohibited',
@@ -231,6 +233,7 @@ export const COPY: Record<Lang, CopyDict> = {
     daysUntil: 'days',
     dayUntil: 'day',
     daysTwo: 'days',
+    notFound: 'Not found',
     hintLake: 'Lake',
     hintRiver: 'River',
     hintReservoir: 'Reservoir',

@@ -26,6 +26,9 @@ export interface UetkTapInfo {
   lng: number;
   lat: number;
   area?: number | null;  // area_ha for lakes, length_km for rivers
+  avgDepthM?: number | null;
+  maxDepthM?: number | null;
+  shorelineKm?: number | null;
 }
 
 export interface LithuaniaMapRealHandle {
@@ -35,6 +38,7 @@ export interface LithuaniaMapRealHandle {
 interface Props {
   onSelectUetk?: (info: UetkTapInfo | null) => void;
   mapHandleRef?: React.RefObject<LithuaniaMapRealHandle | null>;
+  userLocation?: { lng: number; lat: number } | null;
 }
 
 const UETK_LAKES = uetkLakesGeoJson as unknown as GeoJSON.FeatureCollection;
@@ -42,7 +46,7 @@ const UETK_RIVERS = uetkRiversGeoJson as unknown as GeoJSON.FeatureCollection;
 
 function uetkTapInfo(feature: GeoJSON.Feature): UetkTapInfo | null {
   const p = feature.properties as
-    | { id?: string; name?: string; kind?: string; lng?: number; lat?: number; area_ha?: number; length_km?: number }
+    | { id?: string; name?: string; kind?: string; lng?: number; lat?: number; area_ha?: number; length_km?: number; avg_depth_m?: number; max_depth_m?: number; shoreline_km?: number }
     | null;
   if (!p?.id) return null;
   const kind = (['lake', 'reservoir', 'lagoon', 'pond', 'river'] as const).includes(
@@ -58,10 +62,13 @@ function uetkTapInfo(feature: GeoJSON.Feature): UetkTapInfo | null {
     lng: typeof p.lng === 'number' ? p.lng : 0,
     lat: typeof p.lat === 'number' ? p.lat : 0,
     area: typeof p.area_ha === 'number' ? p.area_ha : typeof p.length_km === 'number' ? p.length_km : null,
+    avgDepthM: typeof p.avg_depth_m === 'number' ? p.avg_depth_m : null,
+    maxDepthM: typeof p.max_depth_m === 'number' ? p.max_depth_m : null,
+    shorelineKm: typeof p.shoreline_km === 'number' ? p.shoreline_km : null,
   };
 }
 
-export function LithuaniaMapReal({ onSelectUetk, mapHandleRef }: Props) {
+export function LithuaniaMapReal({ onSelectUetk, mapHandleRef, userLocation }: Props) {
   const mapRef = useRef<MapRef>(null);
   const cameraRef = useRef<CameraRef>(null);
   const [adHocSelectedKadastro, setAdHocSelectedKadastro] = useState<string | null>(null);
@@ -220,6 +227,49 @@ export function LithuaniaMapReal({ onSelectUetk, mapHandleRef }: Props) {
             }}
           />
         </GeoJSONSource>
+
+        {/* User location dot */}
+        {userLocation && (
+          <GeoJSONSource
+            id="user-location"
+            data={{
+              type: 'FeatureCollection',
+              features: [{
+                type: 'Feature',
+                geometry: { type: 'Point', coordinates: [userLocation.lng, userLocation.lat] },
+                properties: {},
+              }],
+            }}
+          >
+            <Layer
+              id="user-location-halo"
+              type="circle"
+              paint={{
+                'circle-radius': 14,
+                'circle-color': '#3b82f6',
+                'circle-opacity': 0.18,
+              }}
+            />
+            <Layer
+              id="user-location-ring"
+              type="circle"
+              paint={{
+                'circle-radius': 9,
+                'circle-color': '#ffffff',
+                'circle-opacity': 1,
+              }}
+            />
+            <Layer
+              id="user-location-dot"
+              type="circle"
+              paint={{
+                'circle-radius': 6,
+                'circle-color': '#3b82f6',
+                'circle-opacity': 1,
+              }}
+            />
+          </GeoJSONSource>
+        )}
 
       </Map>
     </View>

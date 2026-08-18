@@ -8,6 +8,9 @@ export interface UetkRecord {
   lng: number;
   lat: number;
   area?: number | null;  // area_ha for lakes, length_km for rivers
+  avgDepthM?: number | null;
+  maxDepthM?: number | null;
+  shorelineKm?: number | null;
 }
 
 // Strip Lithuanian diacritics so a search for "Kursiu" still finds "Kuršių".
@@ -22,12 +25,15 @@ let _index: { rec: UetkRecord; norm: string }[] | null = null;
 
 function buildIndex(): { rec: UetkRecord; norm: string }[] {
   if (_index) return _index;
-  const out: { rec: UetkRecord; norm: string }[] = [];
+
+  // key = normalizedName + kind → keep only the largest (longest river / biggest lake)
+  const best = new Map<string, UetkRecord>();
+
   const fcs = [uetkLakes, uetkRivers] as unknown as GeoJSON.FeatureCollection[];
   for (const fc of fcs) {
     for (const f of fc.features) {
       const p = f.properties as
-        | { id?: string; name?: string; kind?: string; lng?: number; lat?: number; area_ha?: number; length_km?: number }
+        | { id?: string; name?: string; kind?: string; lng?: number; lat?: number; area_ha?: number; length_km?: number; avg_depth_m?: number; max_depth_m?: number; shoreline_km?: number }
         | null;
       if (!p?.id || !p.name) continue;
       const kind = (['lake', 'reservoir', 'lagoon', 'pond', 'river'] as const).includes(
@@ -35,21 +41,32 @@ function buildIndex(): { rec: UetkRecord; norm: string }[] {
       )
         ? (p.kind as UetkRecord['kind'])
         : 'lake';
-      out.push({
-        rec: {
-          id: p.id,
-          name: p.name,
-          kind,
-          lng: typeof p.lng === 'number' ? p.lng : 0,
-          lat: typeof p.lat === 'number' ? p.lat : 0,
-          area: typeof p.area_ha === 'number' ? p.area_ha : typeof p.length_km === 'number' ? p.length_km : null,
-        },
-        norm: normalize(p.name),
-      });
+      const area = typeof p.area_ha === 'number' ? p.area_ha : typeof p.length_km === 'number' ? p.length_km : 0;
+      const rec: UetkRecord = {
+        id: p.id,
+        name: p.name,
+        kind,
+        lng: typeof p.lng === 'number' ? p.lng : 0,
+        lat: typeof p.lat === 'number' ? p.lat : 0,
+        area: area || null,
+        avgDepthM: typeof p.avg_depth_m === 'number' ? p.avg_depth_m : null,
+        maxDepthM: typeof p.max_depth_m === 'number' ? p.max_depth_m : null,
+        shorelineKm: typeof p.shoreline_km === 'number' ? p.shoreline_km : null,
+      };
+      // For rivers: deduplicate same-name entries, keep the longest segment.
+      // Lakes with the same name are genuinely different bodies, keep all.
+      if (kind === 'river') {
+        const key = normalize(p.name);
+        const existing = best.get(key);
+        if (!existing || area > (existing.area ?? 0)) best.set(key, rec);
+      } else {
+        best.set(p.id, rec);
+      }
     }
   }
-  _index = out;
-  return out;
+
+  _index = [...best.values()].map(rec => ({ rec, norm: normalize(rec.name) }));
+  return _index;
 }
 
 // Returns up to `limit` UETK records whose normalized name contains the
@@ -67,5 +84,8 @@ export function searchUetk(query: string, limit = 8): UetkRecord[] {
     else middle.push(rec);
     if (prefix.length >= limit) break;
   }
-  return [...prefix, ...middle].slice(0, limit);
+  const seen = new Set<string>();
+  return [...prefix, ...middle]
+    .filter(r => !seen.has(r.id) && (seen.add(r.id), true))
+    .slice(0, limit);
 }

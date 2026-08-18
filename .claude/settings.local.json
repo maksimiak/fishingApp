@@ -65,7 +65,13 @@
       "Bash(cp \"C:/Users/ITwork/dev/fishingapp/pngs/bream.png\" \"C:/Users/ITwork/dev/fishingapp/mobile/assets/fish/bream.png\")",
       "Bash(cp \"C:/Users/ITwork/dev/fishingapp/pngs/burbot.png\" \"C:/Users/ITwork/dev/fishingapp/mobile/assets/fish/burbot.png\")",
       "Bash(cp \"C:/Users/ITwork/dev/fishingapp/pngs/carp.png\" \"C:/Users/ITwork/dev/fishingapp/mobile/assets/fish/carp.png\")",
-      "Bash(cp \"C:/Users/ITwork/dev/fishingapp/pngs/catfish.png\" \"C:/Users/ITwork/dev/fishingapp/mobile/assets/fish/catfish.png\")"
+      "Bash(cp \"C:/Users/ITwork/dev/fishingapp/pngs/catfish.png\" \"C:/Users/ITwork/dev/fishingapp/mobile/assets/fish/catfish.png\")",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\ITwork\\\\dev\\\\fishingapp\\\\mobile\\\\src\\\\data\" -Force)",
+      "Bash(Select-Object Name, PSIsContainer)",
+      "Bash(dir C:\\\\Users\\\\ITwork\\\\dev\\\\fishingapp\\\\info_map\\\\updated_uetk *)",
+      "Bash(dir C:\\\\Users\\\\ITwork\\\\dev\\\\fishingapp\\\\info_map *)",
+      "Bash(dir C:\\\\Users\\\\ITwork\\\\dev\\\\fishingapp *)",
+      "Bash(dir C:\\\\Users\\\\ITwork\\\\dev\\\\fishingapp\\\\mobile\\\\src\\\\components\\\\ *)"
     ]
   }
 }

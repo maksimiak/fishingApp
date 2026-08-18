@@ -1,13 +1,13 @@
 import React from 'react';
-import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import { View, Text, ScrollView, Pressable, StyleSheet, Linking } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useApp } from '../state/AppState';
 import { theme } from '../theme/colors';
 import { IconPlus, IconShare, IconBook, IconChevron } from '../components/Icons';
 
 export function MoreScreen() {
   const { t, lang, setLang } = useApp();
-  const validUntil = '2026-12-31';
+  const router = useRouter();
 
   return (
     <View style={s.root}>
@@ -16,35 +16,6 @@ export function MoreScreen() {
       </View>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 60 }}>
-        {/* Licence card */}
-        <View style={{ padding: 12 }}>
-          <View style={s.licenceCard}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <View>
-                <Text style={s.licenceEyebrow}>{t.licence}</Text>
-                <Text style={s.licenceTitle}>
-                  {lang === 'lt' ? 'Mėgėjų žvejybos kortelė' : 'Angler licence'}
-                </Text>
-              </View>
-              <View style={s.licenceShield}>
-                <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round">
-                  <Path d="M12 2 L20 6 V12 C20 17, 16 21, 12 22 C8 21, 4 17, 4 12 V6 Z" />
-                  <Path d="M9 12l2 2 4-4" />
-                </Svg>
-              </View>
-            </View>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 20 }}>
-              <View>
-                <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 10 }}>{t.validUntil}</Text>
-                <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600', marginTop: 2 }}>{validUntil}</Text>
-              </View>
-              <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 11, fontFamily: 'monospace' }}>
-                LT · 47 ••• 3201
-              </Text>
-            </View>
-          </View>
-        </View>
-
         {/* Language toggle */}
         <View style={{ padding: 12, paddingTop: 0 }}>
           <View style={s.actionGroup}>
@@ -71,13 +42,14 @@ export function MoreScreen() {
         <View style={{ padding: 12, paddingTop: 0 }}>
           <View style={s.actionGroup}>
             {[
-              { label: t.buyLicence, Ico: IconPlus },
-              { label: lang === 'lt' ? 'Pranešti apie pažeidimą' : 'Report a violation', Ico: IconShare },
-              { label: lang === 'lt' ? 'Pagalba ir DUK' : 'Help & FAQ', Ico: IconBook },
-              { label: lang === 'lt' ? 'Apie taisykles' : 'About rules', Ico: IconBook },
+              { label: t.buyLicence, Ico: IconPlus, onPress: () => Linking.openURL('https://www.vstt.lt') },
+              { label: lang === 'lt' ? 'Pranešti apie pažeidimą' : 'Report a violation', Ico: IconShare, onPress: () => Linking.openURL('https://aad.lrv.lt/lt/pranesk-apie-aplinkosaugos-pazeidimus/') },
+              { label: lang === 'lt' ? 'Pagalba ir DUK' : 'Help & FAQ', Ico: IconBook, onPress: () => router.push({ pathname: '/faq' } as never) },
+              { label: lang === 'lt' ? 'Apie programėlę' : 'About', Ico: IconBook, onPress: () => router.push({ pathname: '/about' } as never) },
             ].map((row, i, arr) => (
               <Pressable
                 key={i}
+                onPress={row.onPress}
                 style={[s.actionRow, i < arr.length - 1 && { borderBottomWidth: 1 }]}
               >
                 <View style={s.actionIcon}>

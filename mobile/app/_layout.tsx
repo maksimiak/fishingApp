@@ -20,6 +20,8 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="waterbody/[id]" />
           <Stack.Screen name="species/[id]" />
+          <Stack.Screen name="about" />
+          <Stack.Screen name="faq" />
         </Stack>
       </AppStateProvider>
     </SafeAreaProvider>

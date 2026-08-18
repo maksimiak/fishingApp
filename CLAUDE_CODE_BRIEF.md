@@ -174,9 +174,6 @@ Migrate hand-coded rules to Supabase, admin dashboard for editing, content enter
 **M4 — Accounts & saved spots (1 week)**
 Supabase auth, saved spots sync.
 
-**M5 — Catch log (2 weeks)**
-Add-catch flow, photo upload, list + detail views.
-
 **M6 — Weather (1 week)**
 meteo.lt integration, bite index calculation.
 

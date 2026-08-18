@@ -1,15 +1,13 @@
 import type { NationalRules, NationalSpeciesRule } from '../types';
 
 // Source: Mėgėjų žvejybos vidaus vandenyse taisyklės (LT inland-waters
-// amateur fishing rules), the official statute. zvejogidas.lt republishes
-// the verbatim text, atnaujinta 2024-04-30:
-//   https://zvejogidas.lt/zvejybos-taisykles
+// amateur fishing rules), official statute published by AAD (aad.lrv.lt).
 // Section references below point to that text.
 //
 // Per-water-body carve-outs (Annex 2 pike-size waiver in listed rivers,
 // Nemunas Delta bream Apr 20 – May 20, Curonian 7 kg cap, etc.) live in
 // `waterbodies.ts` rather than here.
-const SOURCE_URL = 'https://zvejogidas.lt/zvejybos-taisykles';
+const SOURCE_URL = 'https://aad.lrv.lt';
 
 export const NATIONAL_SPECIES_RULES: NationalSpeciesRule[] = [
   {
@@ -294,7 +292,7 @@ export const NATIONAL_SPECIES_RULES: NationalSpeciesRule[] = [
 ];
 
 // Non-species global rules. Source: §5 (gear), §6 (combo bag + weight cap),
-// §10.1 (free fishing days), §9 (bans). zvejogidas.lt /zvejybos-taisykles.
+// §10.1 (free fishing days), §9 (bans). AAD official statute.
 export const NATIONAL_RULES: NationalRules = {
   // §9 implies night ban via specific time-of-day restrictions on listed
   // stretches (e.g. §10.10, §10.16, §10.23). There is no blanket nationwide

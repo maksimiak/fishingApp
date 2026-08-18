@@ -1,9 +1,8 @@
 import type { WaterBodyRules } from '../types';
 
 // Per-water-body overrides on top of the national §11 rules.
-// Source: zvejogidas.lt /zvejybos-taisykles (Mėgėjų žvejybos vidaus
-// vandenyse taisyklės, atnaujinta 2024-04-30).
-const SOURCE_URL = 'https://zvejogidas.lt/zvejybos-taisykles';
+// Source: Mėgėjų žvejybos vidaus vandenyse taisyklės, AAD (aad.lrv.lt).
+const SOURCE_URL = 'https://aad.lrv.lt';
 
 export const WATER_BODY_RULES: WaterBodyRules[] = [
   {

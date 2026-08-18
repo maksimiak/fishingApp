@@ -86,8 +86,8 @@ export function resolveWaterBody(
     note: null,
     curated: false,
     leased: false,
-    avgDepthM: null,
-    maxDepthM: null,
-    shorelineKm: null,
+    avgDepthM: tileProps.avgDepthM ?? null,
+    maxDepthM: tileProps.maxDepthM ?? null,
+    shorelineKm: tileProps.shorelineKm ?? null,
   };
 }
