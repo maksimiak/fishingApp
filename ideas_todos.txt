@@ -5,6 +5,10 @@ zvejybosgidas.lt featuers that we lack:
 3. Plaukiojimo priemonių su varikliais naudojimo kalendorius.
 4. Masalu automatai
 
+additional features:
+5. long press -> open google maps or makes copyable coordinates
+6. 
+
 
 TODO for the app:
 

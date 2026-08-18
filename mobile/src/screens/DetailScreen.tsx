@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet, Linking, Image } from 'react-native';
+import { LakeDepthMap } from '../components/LakeDepthMap';
 import { useRouter } from 'expo-router';
 import { useApp } from '../state/AppState';
 import { theme } from '../theme/colors';
@@ -52,7 +53,7 @@ function speciesFromStocking(kadastroId: string): string[] {
   return [...ids];
 }
 
-type Tab = 'biting' | 'rules' | 'info' | 'weather';
+type Tab = 'biting' | 'rules' | 'info' | 'weather' | 'depth';
 
 interface DetailScreenProps {
   id: string;
@@ -173,6 +174,7 @@ export function DetailScreen({ id, waterbody: passedWb }: DetailScreenProps) {
               { id: 'rules' as Tab, label: t.rules },
               { id: 'info' as Tab, label: t.tabInfo },
               { id: 'weather' as Tab, label: t.weather },
+              ...(waterbody.type !== 'river' ? [{ id: 'depth' as Tab, label: lang === 'lt' ? 'Gyliai' : 'Depths' }] : []),
             ]
           ).map((tb) => {
             const on = tab === tb.id;
@@ -193,6 +195,9 @@ export function DetailScreen({ id, waterbody: passedWb }: DetailScreenProps) {
           {tab === 'rules' && <RulesTab waterbody={waterbody} />}
           {tab === 'info' && <InfoTab waterbody={waterbody} typeLabel={typeLabel} />}
           {tab === 'weather' && <WeatherTab waterbodyId={waterbody.id} lat={waterbody.lat} lng={waterbody.lng} />}
+          {tab === 'depth' && (
+            <DepthTab waterbody={waterbody} lang={lang} />
+          )}
         </View>
       </ScrollView>
     </View>
@@ -369,6 +374,18 @@ function CalendarView({ waterbody }: { waterbody: WaterBody }) {
           </View>
         ))}
       </View>
+    </View>
+  );
+}
+
+function DepthTab({ waterbody, lang }: { waterbody: WaterBody; lang: 'lt' | 'en' }) {
+  const kadastroId = waterbody.id.startsWith('uetk:') ? waterbody.id.slice(5) : null;
+  return (
+    <View style={{ gap: 10 }}>
+      <LakeDepthMap kadastroId={kadastroId ?? ''} lang={lang} height={340} />
+      <Text style={{ fontSize: 11, color: theme.inkSubtle, textAlign: 'center' }}>
+        {lang === 'lt' ? 'Šaltinis: Aplinkos agentūra (AAD)' : 'Source: Environmental Agency (AAD)'}
+      </Text>
     </View>
   );
 }

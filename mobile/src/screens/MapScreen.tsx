@@ -76,6 +76,11 @@ export function MapScreen() {
 
   const locateMe = async () => {
     if (locating) return;
+    // Already have a location — just re-center without re-fetching GPS
+    if (userLocation) {
+      mapHandleRef.current?.flyTo(userLocation.lng, userLocation.lat, 13);
+      return;
+    }
     setLocating(true);
     try {
       const { status: perm } = await Location.requestForegroundPermissionsAsync();
@@ -88,10 +93,17 @@ export function MapScreen() {
         );
         return;
       }
+      // Use last known position for instant response, then refine with current
+      const last = await Location.getLastKnownPositionAsync();
+      if (last) {
+        const loc = { lng: last.coords.longitude, lat: last.coords.latitude };
+        setUserLocation(loc);
+        mapHandleRef.current?.flyTo(loc.lng, loc.lat, 13);
+      }
       const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      const { longitude, latitude } = pos.coords;
-      setUserLocation({ lng: longitude, lat: latitude });
-      mapHandleRef.current?.flyTo(longitude, latitude, 13);
+      const loc = { lng: pos.coords.longitude, lat: pos.coords.latitude };
+      setUserLocation(loc);
+      mapHandleRef.current?.flyTo(loc.lng, loc.lat, 13);
     } finally {
       setLocating(false);
     }

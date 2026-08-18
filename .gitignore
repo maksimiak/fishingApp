@@ -40,4 +40,5 @@ Thumbs.db
 *.swo
 
 
-*.gdb/
+*.gdb/*.gdb/ 
+*.gdb 

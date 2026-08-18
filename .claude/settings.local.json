@@ -71,7 +71,8 @@
       "Bash(dir C:\\\\Users\\\\ITwork\\\\dev\\\\fishingapp\\\\info_map\\\\updated_uetk *)",
       "Bash(dir C:\\\\Users\\\\ITwork\\\\dev\\\\fishingapp\\\\info_map *)",
       "Bash(dir C:\\\\Users\\\\ITwork\\\\dev\\\\fishingapp *)",
-      "Bash(dir C:\\\\Users\\\\ITwork\\\\dev\\\\fishingapp\\\\mobile\\\\src\\\\components\\\\ *)"
+      "Bash(dir C:\\\\Users\\\\ITwork\\\\dev\\\\fishingapp\\\\mobile\\\\src\\\\components\\\\ *)",
+      "PowerShell(python \"C:\\\\Users\\\\ITwork\\\\dev\\\\fishingapp\\\\scripts\\\\extract-bathymetry.py\" 2>&1)"
     ]
   }
 }
