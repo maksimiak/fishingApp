@@ -16,6 +16,10 @@ type Params = {
   lat?: string;
   lng?: string;
   area?: string;
+  avg_depth_m?: string;
+  max_depth_m?: string;
+  shoreline_km?: string;
+  leased?: string;
 };
 
 function pickString(v: string | string[] | undefined): string | undefined {
@@ -46,6 +50,10 @@ export default function WaterBodyRoute() {
           lat: pickNumber(params.lat),
           lng: pickNumber(params.lng),
           area: pickNumber(params.area),
+          avgDepthM: pickNumber(params.avg_depth_m),
+          maxDepthM: pickNumber(params.max_depth_m),
+          shorelineKm: pickNumber(params.shoreline_km),
+          leased: params.leased === '1' ? true : params.leased === '0' ? false : undefined,
         }
       : undefined;
 

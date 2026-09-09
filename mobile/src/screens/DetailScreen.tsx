@@ -3,7 +3,7 @@ import { View, Text, ScrollView, Pressable, StyleSheet, Linking, Image } from 'r
 import { LakeDepthMap } from '../components/LakeDepthMap';
 import { useRouter } from 'expo-router';
 import { useApp } from '../state/AppState';
-import { theme } from '../theme/colors';
+import { theme, fonts } from '../theme/colors';
 import { SPECIES } from '../data/species';
 import { getStatus, getEffectiveSpeciesRule, getForecast, monthDays, fmtDate } from '../data/rules';
 import { StatusChip } from '../components/StatusChip';
@@ -11,6 +11,7 @@ import { FishIcon } from '../components/FishIcon';
 import type { WaterBody } from '../data/types';
 import { BOAT_SPOTS } from '../data/boatSpots';
 import { STOCKING } from '../data/stocking';
+import BATHY_IDS from '../data/bathymetry-ids.json';
 import { FISH_IMAGES } from '../data/fishImages';
 import {
   IconBack,
@@ -24,6 +25,8 @@ import {
   IconWind,
   IconCalendar,
 } from '../components/Icons';
+
+const BATHY_SET = new Set<string>(BATHY_IDS as string[]);
 
 // Maps Lithuanian stocking fish names → species IDs used in this app
 const STOCKING_NAME_TO_SPECIES: Record<string, string> = {
@@ -83,13 +86,11 @@ export function DetailScreen({ id, waterbody: passedWb }: DetailScreenProps) {
 
   const status = getStatus(waterbody, date);
   const saved = isSaved(waterbody.id);
+  const kadastroId = waterbody.id.startsWith('uetk:') ? waterbody.id.slice(5) : null;
+  const hasBathy = kadastroId != null && BATHY_SET.has(kadastroId);
   const name = lang === 'lt' ? waterbody.nameLt : waterbody.nameEn;
   const rawRegion = lang === 'lt' ? waterbody.region.lt : waterbody.region.en;
   const region = rawRegion || (lang === 'lt' ? 'Lietuva' : 'Lithuania');
-  const note = waterbody.note ? (lang === 'lt' ? waterbody.note.lt : waterbody.note.en) : null;
-  const headerTint =
-    status.status === 'open' ? theme.successSoft : status.status === 'closed' ? theme.dangerSoft : theme.warningSoft;
-
   const typeLabel =
     waterbody.type === 'lake'
       ? lang === 'lt' ? 'Ežeras' : 'Lake'
@@ -104,7 +105,7 @@ export function DetailScreen({ id, waterbody: passedWb }: DetailScreenProps) {
       {/* Top bar */}
       <View style={s.topbar}>
         <Pressable onPress={() => router.back()} style={s.iconBtn} hitSlop={6}>
-          <IconBack color={theme.ink} size={20} />
+          <IconBack color={theme.primary} size={20} />
         </Pressable>
         <View style={{ flexDirection: 'row', gap: 6 }}>
           <Pressable
@@ -135,36 +136,6 @@ export function DetailScreen({ id, waterbody: passedWb }: DetailScreenProps) {
           </View>
         </View>
 
-        {/* Status panel */}
-        <View style={{ paddingHorizontal: 12 }}>
-          <View style={[s.statusPanel, { backgroundColor: headerTint }]}>
-            <Text style={s.statusDate}>
-              {t.today} · {fmtDate(date, lang)}
-            </Text>
-            <Text style={s.statusHeadline}>
-              {status.status === 'open' &&
-                (lang === 'lt'
-                  ? `Šiandien galite žvejoti ${status.openSpecies.length} rūšis.`
-                  : `${status.openSpecies.length} species open for fishing today.`)}
-              {status.status === 'partial' &&
-                (lang === 'lt'
-                  ? `${status.openSpecies.length} rūšys leidžiamos, ${status.closedSpecies.length} – draudžiamos.`
-                  : `${status.openSpecies.length} species allowed, ${status.closedSpecies.length} restricted.`)}
-              {status.status === 'closed' &&
-                (lang === 'lt' ? 'Visos rūšys šiuo metu saugomos.' : 'All species currently protected.')}
-            </Text>
-            {(status.reasonLt || status.reasonEn) && (
-              <Text style={s.statusReason}>
-                {t.reason}: {lang === 'lt' ? status.reasonLt : status.reasonEn}
-              </Text>
-            )}
-            {note && (
-              <View style={s.noteBox}>
-                <Text style={s.noteText}>⚑ {note}</Text>
-              </View>
-            )}
-          </View>
-        </View>
 
         {/* Tabs */}
         <View style={s.tabs}>
@@ -174,7 +145,7 @@ export function DetailScreen({ id, waterbody: passedWb }: DetailScreenProps) {
               { id: 'rules' as Tab, label: t.rules },
               { id: 'info' as Tab, label: t.tabInfo },
               { id: 'weather' as Tab, label: t.weather },
-              ...(waterbody.type !== 'river' ? [{ id: 'depth' as Tab, label: lang === 'lt' ? 'Gyliai' : 'Depths' }] : []),
+              ...(hasBathy ? [{ id: 'depth' as Tab, label: lang === 'lt' ? 'Gyliai' : 'Depths' }] : []),
             ]
           ).map((tb) => {
             const on = tab === tb.id;
@@ -182,7 +153,7 @@ export function DetailScreen({ id, waterbody: passedWb }: DetailScreenProps) {
               <Pressable
                 key={tb.id}
                 onPress={() => setTab(tb.id)}
-                style={[s.tabBtn, on && { backgroundColor: theme.ink }]}
+                style={[s.tabBtn, on && { backgroundColor: theme.primary }]}
               >
                 <Text style={[s.tabLabel, { color: on ? theme.card : theme.inkMuted }]}>{tb.label}</Text>
               </Pressable>
@@ -379,10 +350,10 @@ function CalendarView({ waterbody }: { waterbody: WaterBody }) {
 }
 
 function DepthTab({ waterbody, lang }: { waterbody: WaterBody; lang: 'lt' | 'en' }) {
-  const kadastroId = waterbody.id.startsWith('uetk:') ? waterbody.id.slice(5) : null;
+  const id = waterbody.id.startsWith('uetk:') ? waterbody.id.slice(5) : '';
   return (
     <View style={{ gap: 10 }}>
-      <LakeDepthMap kadastroId={kadastroId ?? ''} lang={lang} height={340} />
+      <LakeDepthMap kadastroId={id} lang={lang} height={340} />
       <Text style={{ fontSize: 11, color: theme.inkSubtle, textAlign: 'center' }}>
         {lang === 'lt' ? 'Šaltinis: Aplinkos agentūra (AAD)' : 'Source: Environmental Agency (AAD)'}
       </Text>
@@ -390,7 +361,8 @@ function DepthTab({ waterbody, lang }: { waterbody: WaterBody; lang: 'lt' | 'en'
   );
 }
 
-function fmtN(n: number): string {
+function fmtN(n: number | null | undefined): string {
+  if (n == null) return '—';
   return n.toLocaleString('lt-LT');
 }
 
@@ -401,124 +373,206 @@ function cap(s: string): string {
 function InfoTab({ waterbody, typeLabel }: { waterbody: WaterBody; typeLabel: string }) {
   const { t, lang } = useApp();
   const [stockingOpen, setStockingOpen] = useState(false);
-  const regionText = lang === 'lt' ? waterbody.region.lt : waterbody.region.en;
+  const lt = lang === 'lt';
+  const regionText = lt ? waterbody.region.lt : waterbody.region.en;
   const kadastroId = waterbody.id.startsWith('uetk:') ? waterbody.id.slice(5) : null;
   const stockingEntry = kadastroId ? (STOCKING[kadastroId] ?? null) : null;
   const isRiver = waterbody.type === 'river';
-  const areaLabel = isRiver ? (lang === 'lt' ? 'Ilgis' : 'Length') : (lang === 'lt' ? 'Plotas' : 'Area');
-  const areaValue = waterbody.area > 0
-    ? isRiver ? `${waterbody.area} km` : `${waterbody.area} ha`
-    : null;
 
-  const permitText = waterbody.leased === true
-    ? t.permitLeased
-    : waterbody.leased === null
-    ? '—'
-    : t.permitPublic;
-
-  const rows: { label: string; value: string }[] = [
-    { label: lang === 'lt' ? 'Tipas' : 'Type', value: typeLabel },
-    ...(areaValue ? [{ label: areaLabel, value: areaValue }] : []),
-    ...(!isRiver ? [
-      { label: t.avgDepth, value: waterbody.avgDepthM != null ? `${waterbody.avgDepthM} m` : '—' },
-      { label: t.maxDepth, value: waterbody.maxDepthM != null ? `${waterbody.maxDepthM} m` : '—' },
-      { label: t.shoreline, value: waterbody.shorelineKm != null ? `${waterbody.shorelineKm} km` : '—' },
-    ] : []),
-    ...(regionText ? [{ label: lang === 'lt' ? 'Regionas' : 'Region', value: regionText }] : []),
-    ...(kadastroId ? [{ label: 'UETK ID', value: kadastroId }] : []),
-    { label: t.fishingPermit, value: '' },
-  ];
-
-  const boatKadastroId = waterbody.id.startsWith('uetk:') ? waterbody.id.slice(5) : null;
-  const boatSpots = boatKadastroId
-    ? BOAT_SPOTS.filter((s) => s.uetkId === boatKadastroId)
+  const boatSpots = kadastroId
+    ? BOAT_SPOTS.filter((spot) => spot.uetkId === kadastroId)
     : [];
 
-  return (
-    <View style={{ gap: 10 }}>
-      <View style={s.generalBox}>
-        {rows.map((row, i) => {
-          const isPermit = row.label === t.fishingPermit;
-          return (
-            <View
-              key={i}
-              style={[
-                isPermit ? s.infoRowColumn : s.infoRow,
-                i < rows.length - 1 && { borderBottomWidth: 1, borderBottomColor: theme.divider },
-              ]}
-            >
-              <Text style={s.infoLabel}>{row.label}</Text>
-              {isPermit
-                ? <Text style={[s.infoValue, { marginTop: 4, fontSize: 12, lineHeight: 18 }]}>{permitText}</Text>
-                : <Text style={s.infoValue}>{row.value}</Text>
-              }
-            </View>
-          );
-        })}
-      </View>
+  // Measure tiles
+  const measures: { value: string; unit: string; label: string }[] = [];
+  if (waterbody.area > 0)
+    measures.push({ value: String(waterbody.area), unit: isRiver ? 'km' : 'ha', label: lt ? (isRiver ? 'Ilgis' : 'Plotas') : (isRiver ? 'Length' : 'Area') });
+  if (!isRiver && waterbody.avgDepthM != null)
+    measures.push({ value: String(waterbody.avgDepthM), unit: 'm', label: lt ? 'Vid. gylis' : 'Avg depth' });
+  if (!isRiver && waterbody.maxDepthM != null)
+    measures.push({ value: String(waterbody.maxDepthM), unit: 'm', label: lt ? 'Max. gylis' : 'Max depth' });
+  if (!isRiver && waterbody.shorelineKm != null)
+    measures.push({ value: String(waterbody.shorelineKm), unit: 'km', label: lt ? 'Pakrantė' : 'Shoreline' });
 
-      {boatSpots.length > 0 && (
-        <View style={s.generalBox}>
-          <Text style={[s.infoLabel, { marginBottom: 6 }]}>{t.boatLaunch}</Text>
-          {boatSpots.map((spot, i) => (
-            <Pressable
-              key={spot.name}
-              onPress={() => Linking.openURL(`https://maps.google.com/?q=${spot.lat},${spot.lng}`)}
-              style={[
-                s.boatSpotRow,
-                i < boatSpots.length - 1 && { borderBottomWidth: 1, borderBottomColor: theme.divider },
-              ]}
-            >
-              <Text style={s.boatSpotText}>{spot.name}</Text>
-              <Text style={{ fontSize: 16, color: theme.accent }}>↗</Text>
-            </Pressable>
+  // Identity rows
+  const identityRows: { label: string; value: string; mono?: boolean }[] = [
+    { label: lt ? 'Tipas' : 'Type', value: typeLabel },
+    ...(regionText ? [{ label: lt ? 'Regionas' : 'Region', value: regionText }] : []),
+    ...(kadastroId ? [{ label: 'UETK ID', value: kadastroId, mono: true }] : []),
+  ];
+
+  // Permit card
+  const permitLeased = waterbody.leased;
+  const permitBg = permitLeased === true ? theme.warningSoft : permitLeased === false ? theme.openBg : theme.surfaceAlt;
+  const permitDotColor = permitLeased === true ? theme.warning : permitLeased === false ? theme.open : theme.outline;
+  const permitBadgeLabel = permitLeased === true
+    ? (lt ? 'NUOMOJAMAS TELKINYS' : 'LEASED WATERS')
+    : permitLeased === false
+    ? (lt ? 'VALSTYBINĖ ŽŪKLĖ' : 'PUBLIC FISHING')
+    : (lt ? 'STATUSAS NEŽINOMAS' : 'UNKNOWN STATUS');
+  const permitBodyText = permitLeased === true ? t.permitLeased : permitLeased === false ? t.permitPublic : '—';
+
+  // Stocking bar chart
+  const stockingBars: { year: string; height: number }[] = [];
+  let latestYear: string | null = null;
+  let latestFish: { fish: string; count: number }[] = [];
+  if (stockingEntry) {
+    const byYear = Object.entries(stockingEntry.byYear).sort(([a], [b]) => Number(a) - Number(b)).slice(-7);
+    const totals = byYear.map(([year, fish]) => ({ year, total: fish.reduce((sum, f) => sum + f.count, 0) }));
+    const maxTotal = Math.max(...totals.map((e) => e.total), 1);
+    totals.forEach((e) => stockingBars.push({ year: e.year, height: Math.max(4, Math.round((e.total / maxTotal) * 44)) }));
+    latestYear = Object.keys(stockingEntry.byYear).sort().reverse()[0] ?? null;
+    latestFish = latestYear ? (stockingEntry.byYear[latestYear] ?? []) : [];
+  }
+
+  return (
+    <View style={{ gap: 12 }}>
+      {/* Measure tiles */}
+      {measures.length > 0 && (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+          {measures.map((m, i) => (
+            <View key={i} style={s.measureTile}>
+              <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4 }}>
+                <Text style={s.measureVal}>{m.value}</Text>
+                <Text style={s.measureUnit}>{m.unit}</Text>
+              </View>
+              <Text style={s.measureLabel}>{m.label}</Text>
+            </View>
           ))}
         </View>
       )}
 
-      {stockingEntry && (
-        <View style={s.generalBox}>
-          <Pressable
-            style={[s.infoRow, { paddingVertical: 6 }]}
-            onPress={() => setStockingOpen((o) => !o)}
+      {/* Identity card */}
+      <View style={s.infoCard}>
+        {identityRows.map((row, i) => (
+          <View
+            key={i}
+            style={[s.infoCardRow, i < identityRows.length - 1 && { borderBottomWidth: 1, borderBottomColor: theme.divider }]}
           >
-            <Text style={[s.infoLabel, { fontWeight: '600', color: theme.ink }]}>{t.stocking}</Text>
-            <View style={{ transform: [{ rotate: stockingOpen ? '90deg' : '0deg' }] }}>
-              <IconChevron color={theme.inkMuted} size={14} />
-            </View>
-          </Pressable>
-          {stockingOpen && (
-            <View style={{ marginTop: 4 }}>
-              <View style={[s.infoRow, { borderTopWidth: 1, borderTopColor: theme.divider }]}>
-                <Text style={s.infoLabel}>{t.stockingTotal}</Text>
-                <Text style={s.infoValue}>{fmtN(stockingEntry.total)}</Text>
+            <Text style={s.infoCardLabel}>{row.label}</Text>
+            <Text style={[s.infoCardValue, row.mono && { fontVariant: ['tabular-nums'] }]}>{row.value}</Text>
+          </View>
+        ))}
+      </View>
+
+      {/* Permit card */}
+      <View style={[s.permitCard, { backgroundColor: permitBg }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={{ width: 8, height: 8, borderRadius: 999, backgroundColor: permitDotColor }} />
+          <Text style={[s.permitCardLabel, { color: permitDotColor }]}>{permitBadgeLabel}</Text>
+        </View>
+        <Text style={s.permitCardText}>{permitBodyText}</Text>
+      </View>
+
+      {/* Boat launch */}
+      <View style={{ gap: 8 }}>
+        <Text style={s.sectionEyebrowNew}>{lt ? 'VALČIŲ NULEIDIMO VIETOS' : 'BOAT LAUNCH SPOTS'}</Text>
+        {boatSpots.length > 0 ? (
+          <View style={s.infoCard}>
+            {boatSpots.map((spot, i) => (
+              <Pressable
+                key={spot.name}
+                onPress={() => Linking.openURL(`https://maps.google.com/?q=${spot.lat},${spot.lng}`)}
+                style={[s.infoCardRow, i < boatSpots.length - 1 && { borderBottomWidth: 1, borderBottomColor: theme.divider }]}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={s.infoCardValue}>{spot.name}</Text>
+                  <Text style={s.monoSmall}>{spot.lat.toFixed(4)}, {spot.lng.toFixed(4)}</Text>
+                </View>
+                <Text style={{ fontSize: 16, color: theme.open }}>↗</Text>
+              </Pressable>
+            ))}
+          </View>
+        ) : (
+          <View style={s.dashedCard}>
+            <Text style={s.infoCardValue}>{lt ? 'Registruotų vietų nėra' : 'No registered spots'}</Text>
+            <Text style={[s.infoCardLabel, { marginTop: 3 }]}>{lt ? 'Šiam telkiniui AAD sąraše nėra įrengtų valčių nuleidimo vietų.' : 'No boat launch spots registered for this water body.'}</Text>
+          </View>
+        )}
+      </View>
+
+      {/* Stocking */}
+      <View style={{ gap: 8 }}>
+        <Text style={s.sectionEyebrowNew}>{lt ? 'ĮŽUVINIMAS' : 'STOCKING'}</Text>
+        {stockingEntry ? (
+          <View style={s.infoCard}>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
+              <View>
+                <Text style={s.measureVal}>{fmtN(stockingEntry.total)}</Text>
+                <Text style={[s.measureLabel, { marginTop: 3 }]}>{lt ? 'Iš viso įleista, vnt.' : 'Total stocked, pcs'}</Text>
               </View>
-              {Object.entries(stockingEntry.byYear)
-                .sort(([a], [b]) => Number(b) - Number(a))
-                .map(([year, fish]) => (
-                  <View key={year} style={{ borderTopWidth: 1, borderTopColor: theme.divider, paddingTop: 8, marginTop: 4 }}>
-                    <Text style={s.stockingYear}>{year}</Text>
-                    {fish.map((f, i) => (
-                      <View key={i} style={s.stockingFishRow}>
-                        <Text style={s.stockingFishName}>{cap(f.fish)}</Text>
-                        <Text style={s.stockingFishCount}>{fmtN(f.count)}</Text>
-                      </View>
-                    ))}
+              <View style={s.stockingYearsBadge}>
+                <Text style={s.stockingYearsBadgeText}>
+                  {Object.keys(stockingEntry.byYear).sort()[0]}–{Object.keys(stockingEntry.byYear).sort().reverse()[0]}
+                </Text>
+              </View>
+            </View>
+
+            {stockingBars.length > 0 && (
+              <View style={{ flexDirection: 'row', gap: 4, marginTop: 14, alignItems: 'flex-end', height: 56 }}>
+                {stockingBars.map((bar) => (
+                  <View key={bar.year} style={{ flex: 1, alignItems: 'center', gap: 5, justifyContent: 'flex-end' }}>
+                    <View style={{ width: '100%', height: bar.height, borderRadius: 3, backgroundColor: theme.primaryFixed }} />
+                    <Text style={s.barLabel}>{bar.year.slice(-2)}</Text>
                   </View>
                 ))}
-            </View>
-          )}
-        </View>
-      )}
+              </View>
+            )}
 
+            {latestYear && (
+              <View style={{ marginTop: 14, borderTopWidth: 1, borderTopColor: theme.divider, paddingTop: 12 }}>
+                <Text style={s.monoSmall}>{latestYear} · {lt ? 'NAUJAUSI ĮRAŠAI' : 'LATEST'}</Text>
+                {latestFish.map((f, i) => (
+                  <View key={i} style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginTop: 10 }}>
+                    <Text style={s.infoCardValue}>{cap(f.fish)}</Text>
+                    <Text style={{ fontSize: 14, fontWeight: '700', color: theme.ink }}>{fmtN(f.count)}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            <Pressable style={s.stockingToggleBtn} onPress={() => setStockingOpen((o) => !o)}>
+              <Text style={s.stockingToggleLabel}>
+                {stockingOpen ? (lt ? 'Rodyti mažiau' : 'Show less') : (lt ? 'Rodyti visus metus' : 'Show all years')}
+              </Text>
+            </Pressable>
+
+            {stockingOpen && (
+              <View style={{ marginTop: 12, borderTopWidth: 1, borderTopColor: theme.divider, paddingTop: 12, gap: 12 }}>
+                {Object.entries(stockingEntry.byYear)
+                  .sort(([a], [b]) => Number(b) - Number(a))
+                  .filter(([year]) => year !== latestYear)
+                  .map(([year, fish]) => (
+                    <View key={year}>
+                      <Text style={s.monoSmall}>{year}</Text>
+                      {fish.map((f, i) => (
+                        <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3 }}>
+                          <Text style={s.infoCardLabel}>{cap(f.fish)}</Text>
+                          <Text style={{ fontSize: 13, fontWeight: '600', color: theme.ink }}>{fmtN(f.count)}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  ))}
+              </View>
+            )}
+          </View>
+        ) : (
+          <View style={s.dashedCard}>
+            <Text style={s.infoCardValue}>{lt ? 'Duomenų nėra' : 'No data'}</Text>
+            <Text style={[s.infoCardLabel, { marginTop: 3 }]}>{lt ? 'Šis telkinys nėra valstybės įžuvinamų telkinių sąraše (2019–2026).' : 'This water body is not in the state stocking register (2019–2026).'}</Text>
+          </View>
+        )}
+      </View>
+
+      {/* More info button */}
       <Pressable
-        style={s.moreInfoBtn}
+        style={s.moreInfoBtnNew}
         onPress={() => Linking.openURL(`https://lt.wikipedia.org/w/index.php?search=${encodeURIComponent(waterbody.nameLt)}`)}
       >
-        <Text style={s.moreInfoText}>
-          {t.moreInfo} →
-        </Text>
+        <Text style={s.moreInfoTextNew}>{t.moreInfo} →</Text>
       </Pressable>
+
+      <Text style={s.sourcesLine}>Šaltiniai: UETK · AAD įžuvinimo registras</Text>
     </View>
   );
 }
@@ -613,62 +667,61 @@ function WeatherTab({ waterbodyId, lat, lng }: { waterbodyId: string; lat: numbe
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.bg },
   topbar: {
-    paddingHorizontal: 10,
-    paddingTop: 8,
-    paddingBottom: 4,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 8,
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
   },
   iconBtn: {
-    width: 36,
-    height: 36,
+    width: 44,
+    height: 44,
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: theme.card,
+    borderWidth: 1,
+    borderColor: theme.cardBorder,
+    shadowColor: '#0f382c',
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
   eyebrow: {
-    fontSize: 12,
-    color: theme.inkSubtle,
-    fontWeight: '600',
-    letterSpacing: 0.5,
+    fontSize: 11,
+    color: theme.inkMuted,
+    fontWeight: '500',
+    fontFamily: fonts.mono,
+    letterSpacing: 0.6,
     textTransform: 'uppercase',
   },
   bigTitle: {
     fontSize: 28,
     fontWeight: '700',
+    fontFamily: fonts.sansBold,
     color: theme.ink,
+    letterSpacing: -0.7,
+    lineHeight: 34,
     marginTop: 4,
   },
-  statusPanel: {
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: theme.cardBorder,
-  },
-  statusDate: { fontSize: 12, color: theme.inkMuted, fontWeight: '600' },
-  statusHeadline: { fontSize: 17, fontWeight: '600', color: theme.ink, marginTop: 6 },
-  statusReason: { fontSize: 13, color: theme.inkMuted, marginTop: 6 },
-  noteBox: {
-    marginTop: 10,
-    padding: 8,
-    backgroundColor: 'rgba(255,255,255,0.55)',
-    borderRadius: 8,
-  },
-  noteText: { fontSize: 12, color: theme.inkMuted },
   tabs: {
     flexDirection: 'row',
     gap: 4,
-    paddingHorizontal: 12,
-    paddingTop: 14,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 4,
   },
   tabBtn: {
     flex: 1,
     paddingVertical: 8,
-    paddingHorizontal: 10,
+    paddingHorizontal: 6,
     borderRadius: 999,
     alignItems: 'center',
+    backgroundColor: theme.surfaceAlt,
   },
-  tabLabel: { fontSize: 12, fontWeight: '600' },
+  tabLabel: { fontSize: 12, fontWeight: '600', fontFamily: fonts.sansSemiBold, color: theme.inkTertiary },
   speciesRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -679,7 +732,7 @@ const s = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
   },
-  speciesName: { fontSize: 14, fontWeight: '600', color: theme.ink },
+  speciesName: { fontSize: 14, fontWeight: '600', fontFamily: fonts.sansSemiBold, color: theme.ink },
   speciesMeta: { fontSize: 11, color: theme.inkSubtle, marginTop: 2 },
   yesNo: {
     flexDirection: 'row',
@@ -701,6 +754,7 @@ const s = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
     marginBottom: 8,
   },
   calendarBox: {
@@ -716,7 +770,7 @@ const s = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 10,
   },
-  calendarTitle: { fontSize: 14, fontWeight: '600', color: theme.ink, textTransform: 'capitalize' },
+  calendarTitle: { fontSize: 14, fontWeight: '600', fontFamily: fonts.sansSemiBold, color: theme.ink, textTransform: 'capitalize' },
   speciesCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -745,11 +799,12 @@ const s = StyleSheet.create({
     flexDirection: 'column',
     paddingVertical: 8,
   },
-  infoLabel: { fontSize: 13, color: theme.inkSubtle },
-  infoValue: { fontSize: 13, color: theme.ink, fontWeight: '500' },
+  infoLabel: { fontSize: 13, fontFamily: fonts.sans, color: theme.inkSubtle },
+  infoValue: { fontSize: 13, color: theme.ink, fontWeight: '500', fontFamily: fonts.sansMedium },
   stockingYear: {
     fontSize: 12,
     fontWeight: '700',
+    fontFamily: fonts.sansBold,
     color: theme.inkMuted,
     textTransform: 'uppercase',
     letterSpacing: 0.4,
@@ -775,7 +830,84 @@ const s = StyleSheet.create({
     padding: 14,
     alignItems: 'center',
   },
-  moreInfoText: { color: theme.accentInk, fontSize: 14, fontWeight: '600' },
+  moreInfoText: { color: theme.accentInk, fontSize: 14, fontWeight: '600', fontFamily: fonts.sansSemiBold },
+
+  // InfoTab redesign
+  measureTile: {
+    flexBasis: '47%',
+    flexGrow: 1,
+    backgroundColor: theme.card,
+    borderWidth: 1,
+    borderColor: theme.cardBorder,
+    borderRadius: 12,
+    padding: 13,
+  },
+  measureVal: { fontSize: 26, fontWeight: '700', fontFamily: fonts.sansBold, color: theme.ink, lineHeight: 30, letterSpacing: -0.52 },
+  measureUnit: { fontSize: 13, fontWeight: '600', fontFamily: fonts.sansSemiBold, color: theme.inkTertiary },
+  measureLabel: { fontSize: 11, fontWeight: '700', fontFamily: fonts.sansBold, color: theme.inkMuted, textTransform: 'uppercase', letterSpacing: 0.6, marginTop: 3 },
+  infoCard: {
+    backgroundColor: theme.card,
+    borderWidth: 1,
+    borderColor: theme.cardBorder,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 2,
+  },
+  infoCardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    gap: 12,
+  },
+  infoCardLabel: { fontSize: 13, fontWeight: '500', fontFamily: fonts.sansMedium, color: theme.inkSubtle },
+  infoCardValue: { fontSize: 13, fontWeight: '600', fontFamily: fonts.sansSemiBold, color: theme.ink, textAlign: 'right', flex: 1 },
+  permitCard: {
+    borderRadius: 12,
+    padding: 14,
+    paddingHorizontal: 16,
+  },
+  permitCardLabel: { fontSize: 11, fontWeight: '700', fontFamily: fonts.sansBold, letterSpacing: 0.6, textTransform: 'uppercase' },
+  permitCardText: { fontSize: 14, fontWeight: '600', fontFamily: fonts.sansSemiBold, color: theme.ink, marginTop: 6, lineHeight: 20, letterSpacing: -0.14 },
+  sectionEyebrowNew: {
+    fontSize: 11,
+    fontWeight: '700',
+    fontFamily: fonts.sansBold,
+    color: theme.inkMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  dashedCard: {
+    borderWidth: 1,
+    borderColor: 'rgba(15,56,44,0.22)',
+    borderStyle: 'dashed',
+    borderRadius: 16,
+    padding: 15,
+    paddingHorizontal: 16,
+    backgroundColor: theme.surfaceAlt,
+  },
+  monoSmall: { fontSize: 11, fontWeight: '500', fontFamily: fonts.mono, color: theme.inkTertiary, letterSpacing: 0.44 },
+  barLabel: { fontSize: 10, fontWeight: '500', color: theme.inkSubtle },
+  stockingYearsBadge: { backgroundColor: theme.openBg, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 12 },
+  stockingYearsBadgeText: { fontSize: 12, fontWeight: '600', fontFamily: fonts.sansSemiBold, color: theme.open },
+  stockingToggleBtn: {
+    marginTop: 14,
+    height: 40,
+    backgroundColor: theme.surfaceAlt,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stockingToggleLabel: { fontSize: 13, fontWeight: '600', fontFamily: fonts.sansSemiBold, color: theme.primary, letterSpacing: -0.13 },
+  moreInfoBtnNew: {
+    height: 48,
+    backgroundColor: theme.primary,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  moreInfoTextNew: { color: '#ffffff', fontSize: 14, fontWeight: '600', fontFamily: fonts.sansSemiBold, letterSpacing: -0.14 },
+  sourcesLine: { fontSize: 11, fontWeight: '500', fontFamily: fonts.mono, color: theme.outline, textAlign: 'center', letterSpacing: 0.44 },
   biteHero: {
     backgroundColor: theme.card,
     borderWidth: 1,

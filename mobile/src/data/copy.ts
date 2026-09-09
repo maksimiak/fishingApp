@@ -26,6 +26,7 @@ export interface CopyDict {
   openSeason: string;
   closedSeason: string;
   search: string;
+  searchSpecies: string;
   nearby: string;
   popular: string;
   save: string;
@@ -83,6 +84,8 @@ export interface CopyDict {
   boatLaunch: string;
   stocking: string;
   stockingTotal: string;
+  copy: string;
+  cancel: string;
 }
 
 export const COPY: Record<Lang, CopyDict> = {
@@ -112,6 +115,7 @@ export const COPY: Record<Lang, CopyDict> = {
     openSeason: 'Leidžiama gaudyti',
     closedSeason: 'Draudžiama gaudyti',
     search: 'Ieškoti vandens telkinio',
+    searchSpecies: 'Ieškoti rūšies',
     nearby: 'Netoli jūsų',
     popular: 'Populiarūs',
     save: 'Išsaugoti',
@@ -165,10 +169,12 @@ export const COPY: Record<Lang, CopyDict> = {
     shoreline: 'Kranto ilgis',
     fishingPermit: 'Žvejybos leidimas',
     permitPublic: 'Žvejoti galima tik turint galiojantį Žvejo mėgėjo bilietą L05.01 arba turint nemokamos žvejybos teisę.',
-    permitLeased: 'Telkinys išnuomotas. Reikalingas nuomininko leidimas.',
+    permitLeased: 'Vandens telkinys išnuomotas. Žvejoti galima tik turint Žvejo mėgėjo kortelę L06.1. Nemokamai žvejoti galima turint nemokamos žvejybos teisę.',
     boatLaunch: 'Valties įleidimo vieta',
     stocking: 'Įžuvinimai',
     stockingTotal: 'Bendras kiekis',
+    copy: 'Kopijuoti',
+    cancel: 'Atšaukti',
   },
   en: {
     appName: 'FisherMap',
@@ -196,6 +202,7 @@ export const COPY: Record<Lang, CopyDict> = {
     openSeason: 'Open season',
     closedSeason: 'Closed season',
     search: 'Search water body',
+    searchSpecies: 'Search species',
     nearby: 'Nearby',
     popular: 'Popular',
     save: 'Save',
@@ -249,9 +256,11 @@ export const COPY: Record<Lang, CopyDict> = {
     shoreline: 'Shoreline',
     fishingPermit: 'Fishing permit',
     permitPublic: 'Fishing requires a valid Amateur Fishing Licence L05.01 or a free fishing entitlement.',
-    permitLeased: 'Water body is leased. A permit from the lessee is required.',
+    permitLeased: 'Water body is leased. Fishing requires an Amateur Fishing Licence L06.1. Free fishing is available to those with a free fishing entitlement.',
     boatLaunch: 'Boat launch',
     stocking: 'Stocking',
     stockingTotal: 'Total stocked',
+    copy: 'Copy',
+    cancel: 'Cancel',
   },
 };

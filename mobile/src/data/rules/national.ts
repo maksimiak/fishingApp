@@ -212,28 +212,55 @@ export const NATIONAL_SPECIES_RULES: NationalSpeciesRule[] = [
   },
   {
     speciesId: 'salmon',
-    // §11.2 requires kortelė; §11.3 size 65; bag/closure governed by per-water
-    // licence terms. We leave bag/closures null here.
+    // §11.2 limitinis leidimas required; §11.3 size 65; bag 1.
+    // Open: Sep 1–Oct 15 (catch-and-release with limited licence) and Jan 1–Apr 30
+    // (time restriction: no fishing >1h after sunset or >1h before sunrise).
     minSizeCm: 65,
     maxSizeCm: null,
-    dailyBagLimit: null,
-    closures: [],
+    dailyBagLimit: 1,
+    closures: [
+      {
+        start: [5, 1],
+        end: [8, 31],
+        reason: { lt: 'Lašišų vasaros draudimas', en: 'Salmon summer closure' },
+        source: SOURCE_URL,
+      },
+      {
+        start: [10, 16],
+        end: [12, 31],
+        reason: { lt: 'Lašišų rudens draudimas', en: 'Salmon autumn closure' },
+        source: SOURCE_URL,
+      },
+    ],
     notes: {
-      lt: 'Reikalinga atskira licencija; sąlygos – pagal vandens telkinio leidimą',
-      en: 'Special licence required; bag and closure per water-body permit',
+      lt: 'Rugs. 1–Spal. 15: limitinė licencija, sugautos lašišos paleidžiamos. Saus. 1–Bal. 30: draudžiama žvejoti praėjus daugiau kaip valandai po saulės laidos ar likus daugiau kaip valandai iki saulės patekėjimo.',
+      en: 'Sep 1–Oct 15: limited licence required, catch-and-release only. Jan 1–Apr 30: no fishing more than one hour after sunset or one hour before sunrise.',
     },
   },
   {
     speciesId: 'sea-trout',
-    // §11.2 requires kortelė; §11.3 size 65; bag/closure governed by per-water
-    // licence terms.
+    // §11.2 limitinis leidimas required; §11.3 size 65; bag 1.
+    // Open: Sep 1–Oct 15 and Jan 1–Apr 30 (time restriction same as salmon).
     minSizeCm: 65,
     maxSizeCm: null,
-    dailyBagLimit: null,
-    closures: [],
+    dailyBagLimit: 1,
+    closures: [
+      {
+        start: [5, 1],
+        end: [8, 31],
+        reason: { lt: 'Šlakių vasaros draudimas', en: 'Sea trout summer closure' },
+        source: SOURCE_URL,
+      },
+      {
+        start: [10, 16],
+        end: [12, 31],
+        reason: { lt: 'Šlakių rudens draudimas', en: 'Sea trout autumn closure' },
+        source: SOURCE_URL,
+      },
+    ],
     notes: {
-      lt: 'Reikalinga atskira licencija; sąlygos – pagal vandens telkinio leidimą',
-      en: 'Special licence required; bag and closure per water-body permit',
+      lt: 'Rugs. 1–Spal. 15: limitinė licencija. Saus. 1–Bal. 30: draudžiama žvejoti praėjus daugiau kaip valandai po saulės laidos ar likus daugiau kaip valandai iki saulės patekėjimo.',
+      en: 'Sep 1–Oct 15: limited licence required. Jan 1–Apr 30: no fishing more than one hour after sunset or one hour before sunrise.',
     },
   },
   {

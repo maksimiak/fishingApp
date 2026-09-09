@@ -142,7 +142,7 @@ for lake in bati_lakes:
         continue
 
     minx, miny, maxx, maxy = lake['bounds']
-    tol = max(maxx - minx, maxy - miny) / 400  # finer → smoother curves
+    tol = max(maxx - minx, maxy - miny) / 800  # finer → smoother curves
 
     w, s = lks94_to_wgs84.transform(minx, miny)
     e, n = lks94_to_wgs84.transform(maxx, maxy)

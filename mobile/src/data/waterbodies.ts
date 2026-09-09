@@ -1,4 +1,5 @@
 import type { WaterBody } from './types';
+import { LEASED_LAKE_IDS } from './leased-lakes';
 
 export const WATERBODIES: WaterBody[] = [];
 
@@ -85,7 +86,7 @@ export function resolveWaterBody(
     region: { lt: '', en: '' },
     note: null,
     curated: false,
-    leased: false,
+    leased: tileProps.leased ?? (tileProps.kadastro_id ? LEASED_LAKE_IDS.has(tileProps.kadastro_id) : null),
     avgDepthM: tileProps.avgDepthM ?? null,
     maxDepthM: tileProps.maxDepthM ?? null,
     shorelineKm: tileProps.shorelineKm ?? null,

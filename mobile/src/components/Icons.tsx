@@ -128,3 +128,9 @@ export const IconLayers = ({ color = '#000', size = 18 }: IconProps) => (
     <Path d="M2 13l10 5 10-5M2 18l10 5 10-5" />
   </Svg>
 );
+
+export const IconExpand = ({ color = '#000', size = 18 }: IconProps) => (
+  <Svg {...base(size)} fill="none" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+    <Path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+  </Svg>
+);

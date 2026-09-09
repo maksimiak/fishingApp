@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View } from 'react-native';
-import { Map, Camera, GeoJSONSource, Layer, type MapRef, type CameraRef, type PressEventWithFeatures } from '@maplibre/maplibre-react-native';
+import { View, StyleSheet } from 'react-native';
+import { useApp } from '../state/AppState';
+import { Map, Camera, GeoJSONSource, Layer, Marker, type MapRef, type CameraRef, type PressEventWithFeatures, type PressEvent } from '@maplibre/maplibre-react-native';
 import type { NativeSyntheticEvent } from 'react-native';
 import Constants from 'expo-constants';
 import { LITHUANIA_BOUNDS } from '../data/waterbodies';
@@ -13,10 +14,10 @@ const MAPTILER_KEY = (Constants.expoConfig?.extra as { maptilerKey?: string } | 
 // the UETK fill so it doesn't show through.
 const MAP_STYLE_URL = `https://api.maptiler.com/maps/basic-v2/style.json?key=${MAPTILER_KEY}`;
 
-const WATER_BLUE = '#2b6cb0';
-const WATER_BLUE_DARK = '#1a4f87';
-const NAME_COLOR = '#1a4f87';
-const SELECTED_RING = '#ffffff';
+const WATER_FILL = '#c1ecda';
+const WATER_STROKE = '#79a292';
+const NAME_COLOR = '#006c49';
+const SELECTED_RING = '#0f382c';
 
 export interface UetkTapInfo {
   id: string;            // 'uetk:<kadastro_id>'
@@ -37,8 +38,11 @@ export interface LithuaniaMapRealHandle {
 
 interface Props {
   onSelectUetk?: (info: UetkTapInfo | null) => void;
+  onMapLongPress?: (lng: number, lat: number) => void;
   mapHandleRef?: React.RefObject<LithuaniaMapRealHandle | null>;
   userLocation?: { lng: number; lat: number } | null;
+  pinCoord?: { lng: number; lat: number } | null;
+  showWater?: boolean;
 }
 
 const UETK_LAKES = uetkLakesGeoJson as unknown as GeoJSON.FeatureCollection;
@@ -68,7 +72,8 @@ function uetkTapInfo(feature: GeoJSON.Feature): UetkTapInfo | null {
   };
 }
 
-export function LithuaniaMapReal({ onSelectUetk, mapHandleRef, userLocation }: Props) {
+export function LithuaniaMapReal({ onSelectUetk, onMapLongPress, mapHandleRef, userLocation, pinCoord, showWater = true }: Props) {
+  const { t } = useApp();
   const mapRef = useRef<MapRef>(null);
   const cameraRef = useRef<CameraRef>(null);
   const [adHocSelectedKadastro, setAdHocSelectedKadastro] = useState<string | null>(null);
@@ -84,6 +89,11 @@ export function LithuaniaMapReal({ onSelectUetk, mapHandleRef, userLocation }: P
       if (mapHandleRef) mapHandleRef.current = null;
     };
   }, [mapHandleRef]);
+
+  const handleLongPress = (e: NativeSyntheticEvent<PressEvent>) => {
+    const [lng, lat] = e.nativeEvent.lngLat;
+    onMapLongPress?.(lng, lat);
+  };
 
   const handleUetkPress = (e: NativeSyntheticEvent<PressEventWithFeatures>) => {
     const feat = e.nativeEvent.features?.[0];
@@ -110,6 +120,7 @@ export function LithuaniaMapReal({ onSelectUetk, mapHandleRef, userLocation }: P
         attributionPosition={{ bottom: 8, right: 8 }}
         logoPosition={{ bottom: 8, left: 8 }}
         compassPosition={{ top: 8, right: 8 }}
+        onLongPress={handleLongPress}
       >
         <Camera
           ref={cameraRef}
@@ -133,12 +144,12 @@ export function LithuaniaMapReal({ onSelectUetk, mapHandleRef, userLocation }: P
         />
 
         {/* UETK rivers — bold blue line. Rendered first so lake fills sit on top. */}
-        <GeoJSONSource id="uetk-rivers" data={UETK_RIVERS} onPress={handleUetkPress}>
+        {showWater && <GeoJSONSource id="uetk-rivers" data={UETK_RIVERS} onPress={handleUetkPress}>
           <Layer
             id="uetk-rivers-line"
             type="line"
             paint={{
-              'line-color': WATER_BLUE,
+              'line-color': WATER_STROKE,
               'line-width': [
                 'interpolate',
                 ['linear'],
@@ -175,28 +186,28 @@ export function LithuaniaMapReal({ onSelectUetk, mapHandleRef, userLocation }: P
             }}
             paint={{
               'text-color': NAME_COLOR,
-              'text-halo-color': '#ffffff',
-              'text-halo-width': 1.4,
+              'text-halo-color': '#f3f4f1',
+              'text-halo-width': 1.5,
             }}
           />
-        </GeoJSONSource>
+        </GeoJSONSource>}
 
         {/* UETK lakes — bold blue fill + darker outline. */}
-        <GeoJSONSource id="uetk-lakes" data={UETK_LAKES} onPress={handleUetkPress}>
+        {showWater && <GeoJSONSource id="uetk-lakes" data={UETK_LAKES} onPress={handleUetkPress}>
           <Layer
             id="uetk-lakes-fill"
             type="fill"
             paint={{
-              'fill-color': WATER_BLUE,
-              'fill-opacity': 0.85,
+              'fill-color': WATER_FILL,
+              'fill-opacity': 0.9,
             }}
           />
           <Layer
             id="uetk-lakes-outline"
             type="line"
             paint={{
-              'line-color': WATER_BLUE_DARK,
-              'line-width': 1.2,
+              'line-color': WATER_STROKE,
+              'line-width': 2.5,
               'line-opacity': 0.95,
             }}
           />
@@ -226,7 +237,7 @@ export function LithuaniaMapReal({ onSelectUetk, mapHandleRef, userLocation }: P
               'text-halo-width': 1.6,
             }}
           />
-        </GeoJSONSource>
+        </GeoJSONSource>}
 
         {/* User location dot */}
         {userLocation && (
@@ -271,7 +282,50 @@ export function LithuaniaMapReal({ onSelectUetk, mapHandleRef, userLocation }: P
           </GeoJSONSource>
         )}
 
+        {/* Long-press pin marker */}
+        {pinCoord && (
+          <Marker
+            id="long-press-pin"
+            lngLat={[pinCoord.lng, pinCoord.lat]}
+            anchor="bottom"
+          >
+            <View style={pin.wrap}>
+              <View style={pin.head} />
+              <View style={pin.tail} />
+            </View>
+          </Marker>
+        )}
+
       </Map>
     </View>
   );
 }
+
+const PIN_COLOR = '#0f382c';
+const pin = StyleSheet.create({
+  wrap: { alignItems: 'center', width: 28 },
+  head: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: PIN_COLOR,
+    borderWidth: 3,
+    borderColor: '#ffffff',
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 5,
+  },
+  tail: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: 6,
+    borderRightWidth: 6,
+    borderTopWidth: 9,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: PIN_COLOR,
+    marginTop: -2,
+  },
+});

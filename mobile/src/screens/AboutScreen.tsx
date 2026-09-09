@@ -2,100 +2,82 @@ import React from 'react';
 import { View, Text, ScrollView, Pressable, Linking, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useApp } from '../state/AppState';
-import { theme } from '../theme/colors';
-import { IconChevron } from '../components/Icons';
+import { theme, shadows, fonts } from '../theme/colors';
+import { IconChevron, IconBack } from '../components/Icons';
 
 const VERSION = '1.7.0';
 
 export function AboutScreen() {
   const { lang } = useApp();
   const router = useRouter();
-
   const lt = lang === 'lt';
 
   const dataRows = [
-    {
-      label: lt ? 'Vandens telkiniai' : 'Water bodies',
-      value: 'UETK (uetk.biip.lt)',
-      url: 'https://uetk.biip.lt',
-    },
-    {
-      label: lt ? 'Žvejybos taisyklės' : 'Fishing rules',
-      value: lt ? 'AAD – Aplinkos apsaugos departamentas' : 'AAD – Environmental Protection Dept.',
-      url: 'https://aad.lrv.lt',
-    },
-    {
-      label: lt ? 'Žemėlapio pagrindas' : 'Map tiles',
-      value: 'MapTiler',
-      url: 'https://www.maptiler.com',
-    },
+    { label: lt ? 'Vandens telkiniai' : 'Water bodies', value: 'uetk.biip.lt', url: 'https://uetk.biip.lt' },
+    { label: lt ? 'Žvejybos taisyklės' : 'Fishing rules', value: 'aad.lrv.lt', url: 'https://aad.lrv.lt' },
+    { label: lt ? 'Žemėlapio pagrindas' : 'Map tiles', value: 'maptiler.com', url: 'https://www.maptiler.com' },
   ];
 
   return (
     <View style={s.root}>
       <View style={s.header}>
-        <Pressable onPress={() => router.back()} hitSlop={12} style={s.back}>
-          <View style={{ transform: [{ rotate: '180deg' }] }}>
-            <IconChevron color={theme.ink} size={20} />
-          </View>
-          <Text style={s.backText}>{lt ? 'Atgal' : 'Back'}</Text>
+        <Pressable onPress={() => router.back()} hitSlop={12} style={s.backRoundel}>
+          <IconBack color={theme.primary} size={20} />
         </Pressable>
         <Text style={s.title}>{lt ? 'Apie programėlę' : 'About'}</Text>
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 60 }}>
-        {/* App identity */}
-        <View style={s.section}>
-          <View style={s.appCard}>
-            <Text style={s.appName}>FisherMap</Text>
-            <Text style={s.appSub}>{lt ? 'Mėgėjų žvejybos pagalbininkas' : 'Lithuanian angling companion'}</Text>
-            <Text style={s.appVersion}>{lt ? `Versija ${VERSION}` : `Version ${VERSION}`}</Text>
-          </View>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 60, gap: 12 }}>
+        {/* App identity card */}
+        <View style={s.identityCard}>
+          <Text style={s.appName}>FisherMap</Text>
+          <Text style={s.appTagline}>
+            {lt ? 'Mėgėjų žvejybos pagalbininkas Lietuvoje' : 'Lithuanian angling companion'}
+          </Text>
+          <Text style={s.appVersion}>VERSIJA {VERSION}</Text>
         </View>
 
-        {/* Description */}
-        <View style={s.section}>
-          <View style={s.card}>
-            <Text style={s.cardTitle}>{lt ? 'Kas tai?' : 'What is this?'}</Text>
-            <Text style={s.cardBody}>
-              {lt
-                ? 'FisherMap – Lietuvos žvejų programėlė, padedanti sužinoti žvejybos sezono datas, kvotas ir apribojimus pagal rūšis. Žemėlapyje rodomos visos UETK registruotos upės ir ežerai.'
-                : 'FisherMap is a Lithuanian angling app that shows season dates, size limits and catch quotas for each fish species. The map displays all UETK-registered rivers and lakes.'}
-            </Text>
-          </View>
+        {/* What is it */}
+        <View style={s.card}>
+          <Text style={s.cardTitle}>{lt ? 'Kas tai?' : 'What is this?'}</Text>
+          <Text style={s.cardBody}>
+            {lt
+              ? 'FisherMap – Lietuvos žvejų programėlė, padedanti sužinoti žvejybos sezono datas, kvotas ir apribojimus pagal rūšis. Žemėlapyje rodomos visos UETK registruotos upės ir ežerai.'
+              : 'FisherMap is a Lithuanian angling app that shows season dates, size limits and catch quotas for each fish species. The map displays all UETK-registered rivers and lakes.'}
+          </Text>
         </View>
 
         {/* Data sources */}
-        <View style={s.section}>
-          <Text style={s.sectionLabel}>{lt ? 'Duomenų šaltiniai' : 'Data sources'}</Text>
-          <View style={s.card}>
-            {dataRows.map((row, i) => (
-              <Pressable
-                key={row.value}
-                style={[s.row, i < dataRows.length - 1 && { borderBottomWidth: 1 }]}
-                onPress={() => Linking.openURL(row.url)}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text style={s.rowLabel}>{row.label}</Text>
-                  <Text style={s.rowValue}>{row.value}</Text>
-                </View>
-                <IconChevron color={theme.inkSubtle} size={14} />
-              </Pressable>
-            ))}
-          </View>
+        <Text style={s.sectionLabel}>{lt ? 'DUOMENŲ ŠALTINIAI' : 'DATA SOURCES'}</Text>
+        <View style={s.card}>
+          {dataRows.map((row, i) => (
+            <Pressable
+              key={row.url}
+              style={[s.dataRow, i < dataRows.length - 1 && { borderBottomWidth: 1 }]}
+              onPress={() => Linking.openURL(row.url).catch(() => {})}
+            >
+              <Text style={s.dataLabel}>{row.label}</Text>
+              <Text style={s.dataValue}>{row.value}</Text>
+              <IconChevron color={theme.outline} size={14} />
+            </Pressable>
+          ))}
         </View>
 
         {/* Disclaimer */}
-        <View style={s.section}>
-          <View style={s.card}>
-            <Text style={s.cardTitle}>{lt ? 'Atsakomybės apribojimas' : 'Disclaimer'}</Text>
-            <Text style={s.cardBody}>
-              {lt
-                ? 'Programėlė teikiama informaciniais tikslais. Prieš žvejodami visada patikrinkite galiojančias taisykles oficialiuose šaltiniuose. Kūrėjai neatsako už galimas netikslybes.'
-                : 'This app is provided for informational purposes only. Always verify current regulations through official sources before fishing. The developers are not responsible for any inaccuracies.'}
-            </Text>
-          </View>
+        <View style={s.disclaimer}>
+          <Text style={s.disclaimerTitle}>
+            {lt ? 'Atsakomybės apribojimas' : 'Disclaimer'}
+          </Text>
+          <Text style={s.disclaimerBody}>
+            {lt
+              ? 'Programėlė teikiama informaciniais tikslais. Prieš žvejodami visada patikrinkite galiojančias taisykles oficialiuose šaltiniuose. Kūrėjai neatsako už galimas netikslybes.'
+              : 'This app is provided for informational purposes only. Always verify current regulations through official sources before fishing. The developers are not responsible for any inaccuracies.'}
+          </Text>
         </View>
+
+        <Text style={s.sources}>
+          {lt ? 'Šaltiniai: UETK · AAD' : 'Sources: UETK · AAD'}
+        </Text>
       </ScrollView>
     </View>
   );
@@ -103,32 +85,103 @@ export function AboutScreen() {
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.bg },
-  header: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10 },
-  back: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 10 },
-  backText: { fontSize: 15, color: theme.ink },
-  title: { fontSize: 26, fontWeight: '700', color: theme.ink },
-  section: { paddingHorizontal: 16, marginBottom: 16 },
-  sectionLabel: { fontSize: 12, fontWeight: '600', color: theme.inkSubtle, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 },
-  appCard: {
-    backgroundColor: theme.accent,
-    borderRadius: 16,
-    padding: 20,
+  header: {
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 12,
+    gap: 12,
   },
-  appName: { fontSize: 28, fontWeight: '800', color: '#fff' },
-  appSub: { fontSize: 13, color: 'rgba(255,255,255,0.8)', textAlign: 'center' },
-  appVersion: { fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 4 },
-  card: {
+  backRoundel: {
+    width: 44,
+    height: 44,
+    borderRadius: 999,
     backgroundColor: theme.card,
     borderWidth: 1,
     borderColor: theme.cardBorder,
-    borderRadius: 14,
-    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadows.card,
   },
-  cardTitle: { fontSize: 14, fontWeight: '600', color: theme.ink, padding: 14, paddingBottom: 4 },
-  cardBody: { fontSize: 13, color: theme.inkMuted, lineHeight: 20, padding: 14, paddingTop: 6 },
-  row: { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 10, borderBottomColor: theme.divider },
-  rowLabel: { fontSize: 13, fontWeight: '500', color: theme.ink },
-  rowValue: { fontSize: 12, color: theme.inkSubtle, marginTop: 1 },
+  title: { fontSize: 28, fontWeight: '700', fontFamily: fonts.sansBold, color: theme.ink, letterSpacing: -0.7, flex: 1, lineHeight: 34 },
+
+  // Identity card
+  identityCard: {
+    backgroundColor: theme.primary,
+    borderRadius: 20,
+    padding: 24,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    gap: 6,
+    ...shadows.raised,
+  },
+  appName: { fontSize: 28, fontWeight: '800', fontFamily: fonts.sansExtraBold, color: '#ffffff' },
+  appTagline: { fontSize: 14, fontFamily: fonts.sansMedium, lineHeight: 21, color: theme.primaryFixed, textAlign: 'center' },
+  appVersion: {
+    fontSize: 11,
+    fontWeight: '500',
+    fontFamily: fonts.mono,
+    letterSpacing: 0.44,
+    color: theme.primaryLabel,
+    marginTop: 4,
+    textTransform: 'uppercase',
+  },
+
+  // Cards
+  card: {
+    backgroundColor: theme.card,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: theme.cardBorder,
+    overflow: 'hidden',
+    ...shadows.card,
+  },
+  cardTitle: { fontSize: 14, fontWeight: '600', fontFamily: fonts.sansSemiBold, color: theme.ink, padding: 14, paddingBottom: 4 },
+  cardBody: { fontSize: 14, fontFamily: fonts.sans, lineHeight: 21, color: theme.inkMuted, padding: 14, paddingTop: 6 },
+
+  // Section label
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    fontFamily: fonts.sansBold,
+    color: theme.outline,
+    letterSpacing: 0.66,
+    textTransform: 'uppercase',
+    marginBottom: -4,
+  },
+
+  // Data source rows
+  dataRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 8,
+    borderBottomColor: theme.divider,
+  },
+  dataLabel: { flex: 1, fontSize: 14, fontWeight: '600', fontFamily: fonts.sansSemiBold, color: theme.ink },
+  dataValue: { fontSize: 11, fontWeight: '500', fontFamily: fonts.mono, color: theme.inkTertiary, letterSpacing: 0.44 },
+
+  // Disclaimer
+  disclaimer: {
+    backgroundColor: theme.warningSoft,
+    borderRadius: 16,
+    padding: 16,
+    gap: 4,
+    borderWidth: 1,
+    borderColor: theme.cardBorder,
+  },
+  disclaimerTitle: { fontSize: 14, fontWeight: '600', fontFamily: fonts.sansSemiBold, color: theme.ink },
+  disclaimerBody: { fontSize: 13, fontFamily: fonts.sansMedium, lineHeight: 19, color: theme.inkMuted, marginTop: 4 },
+
+  sources: {
+    fontSize: 11,
+    fontWeight: '500',
+    fontFamily: fonts.mono,
+    color: theme.outline,
+    letterSpacing: 0.44,
+    textAlign: 'center',
+    textTransform: 'uppercase',
+  },
 });

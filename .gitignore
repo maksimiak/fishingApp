@@ -40,5 +40,13 @@ Thumbs.db
 *.swo
 
 
-*.gdb/*.gdb/ 
-*.gdb 
+*.gdb/*.gdb/
+*.gdb
+
+# Design files
+FisherApp redesign direction/
+FisherApp redesign direction(1)/
+FisherApp redesign direction.zip
+FisherApp redesign direction(1).zip
+descriptions_store.txt
+design.png

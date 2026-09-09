@@ -6,16 +6,74 @@ zvejybosgidas.lt featuers that we lack:
 4. Masalu automatai
 
 additional features:
-5. long press -> open google maps or makes copyable coordinates
-6. 
+5. long press -> open google maps or makes copyable coordinates (Done)
+6. gyliai full screen? (done)
+7. Filter map by species — "show only waters where pike is open today"
+8. Isnuomotas/neisnuomotas ezeras
+
+some issues:
+1. double clicking the where am I button doesnt center screeen n where u are. (fixed)
 
 
-TODO for the app:
+IDEAS:
+1. Notifications
+  - Push notification when a closed season ends for a saved spot — "Galvė pike season opens tomorrow"
+  
+ 
+ 
+ 
+publishing steps:
+ Phase 1 — Prepare the app (do this now, in code)
 
-1. Gather/generate photos for every fish type.
-2. Gather/generate photos for lake/river to show in bottom UI 
-3. Solve that all lakes are shown
-4. Generate app icon
-5. Port https://www.e-tar.lt/portal/lt/legalAct/TAR.FEC90E6937D4/asr (actuall rules into one of the tabs and remove Dienynas)
-6. Isnuomotas/neisnuomotas ezeras
+  1. Write a privacy policy — required by Google Play because you use location. One page is fine. Host it free on a
+  Notion public page or GitHub Pages. Must exist before submitting.
+  2. Add react-native-purchases (RevenueCat SDK) to the app
+  cd mobile && npx expo install react-native-purchases
+  3. Implement the paywall gate in code:
+    - Add isPremium: boolean + restorePurchases() to AppState
+    - Initialize RevenueCat on app launch (you'll need the API key from Phase 3 — use a placeholder for now)
+    - In DetailScreen: show Gyliai tab always, but if !isPremium → show <PaywallModal> instead of the map
+    - PaywallModal: price display, "Atrakinti" button, "Atkurti pirkimą" link
+  4. Bump version in app.json to 1.8.0
+  5. Take screenshots — 3–4 from the running app: map view, species screen, depth map, detail screen
 
+  ---
+
+  Phase 2 — Google Play Console
+
+  6. Create developer account — pay the $25 one-time fee at https://play.google.com/console
+  7. Create the app in Play Console — fill in the store listing: name, description (you have LT + EN), screenshots,
+  privacy policy URL, category (Sports → Fishing)
+  8. Build the production AAB:
+  eas build -p android --profile production
+  9. Upload the AAB to an internal testing track in Play Console (you must upload before you can create IAP products)
+
+  ---
+
+  Phase 3 — Set up RevenueCat + IAP product
+
+  10. Create RevenueCat account at revenuecat.com — free tier is plenty
+  11. Create the IAP product in Play Console:
+    - Monetize → In-app products → Create product
+    - Product ID: gyliai_lifetime (or similar)
+    - Type: one-time (non-consumable)
+    - Price: €3.99 (or whatever you decide)
+  12. Connect Play Console to RevenueCat — link your Google service account in RevenueCat dashboard
+  13. Create an Offering in RevenueCat pointing to gyliai_lifetime — this is what the SDK fetches at runtime
+  14. Swap the placeholder API key in the app with the real RevenueCat key
+
+  ---
+
+  Phase 4 — Final build and submit
+
+  15. Final production build with real API key:
+  eas build -p android --profile production
+  16. Upload to production track in Play Console and fill in all required fields
+  17. Submit for review — Google typically approves in 1–3 days for a new app
+
+  ---
+
+  The critical ordering constraint: steps 8–9 (upload AAB) must happen before step 11 (create IAP product in Play
+  Console), because Google requires at least one upload before IAP products can be created.
+
+  Want to start with Phase 1 implementation? That's the part I can help build directly.

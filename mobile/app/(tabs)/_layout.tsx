@@ -1,30 +1,33 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useApp } from '../../src/state/AppState';
-import { theme } from '../../src/theme/colors';
+import { theme, fonts } from '../../src/theme/colors';
 import { IconMap, IconCalendar, IconBook, IconMore } from '../../src/components/Icons';
 
 export default function TabsLayout() {
   const { t } = useApp();
+  const insets = useSafeAreaInsets();
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: theme.accent,
-        tabBarInactiveTintColor: theme.inkSubtle,
+        tabBarActiveTintColor: theme.primary,
+        tabBarInactiveTintColor: theme.outline,
         tabBarStyle: {
-          backgroundColor: theme.surface,
-          borderTopColor: theme.divider,
+          backgroundColor: theme.card,
+          borderTopColor: theme.cardBorder,
           borderTopWidth: 1,
-          height: 64,
+          height: 64 + insets.bottom,
           paddingTop: 6,
-          paddingBottom: 8,
+          paddingBottom: 8 + insets.bottom,
         },
         tabBarLabelStyle: {
-          fontSize: 10,
+          fontSize: 12,
           fontWeight: '600',
-          letterSpacing: -0.2,
+          fontFamily: fonts.sansSemiBold,
+          letterSpacing: -0.1,
         },
       }}
     >
@@ -43,7 +46,7 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="log"
+        name="rules"
         options={{
           title: t.tabs.rules,
           tabBarIcon: ({ color }) => <IconBook color={color} size={22} />,

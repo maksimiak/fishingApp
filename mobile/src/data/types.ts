@@ -10,6 +10,7 @@ export interface Species {
   minSize: number;
   bagLimit: number | null;
   closedSeason: [[number, number], [number, number]] | null;
+  closedSeason2?: [[number, number], [number, number]]; // second closed window for split-season species
   habitat: { lt: string; en: string };
   bestBait: { lt: string; en: string };
   bestTime: { lt: string; en: string };

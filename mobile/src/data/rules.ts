@@ -82,8 +82,9 @@ export function getStatus(waterbody: WaterBody, date: Date): WaterBodyStatus {
   let warningEn: string | null = null;
   for (const sp of open) {
     if (!sp.closedSeason) continue;
-    const [startM, startD] = sp.closedSeason[0];
-    const days = daysUntil(date, startM, startD);
+    const windows: [[number, number], [number, number]][] = [sp.closedSeason];
+    if (sp.closedSeason2) windows.push(sp.closedSeason2);
+    const days = Math.min(...windows.map(([s]) => daysUntil(date, s[0], s[1])));
     if (days <= 14) {
       warningLt = `${sp.nameLt} nerštas artėja`;
       warningEn = `${sp.nameEn} spawning soon`;
@@ -105,6 +106,7 @@ export function getStatus(waterbody: WaterBody, date: Date): WaterBodyStatus {
 
 export function getSpeciesStatus(species: Species, date: Date): 'open' | 'closed' {
   if (isInClosedSeason(date, species.closedSeason)) return 'closed';
+  if (species.closedSeason2 && isInClosedSeason(date, species.closedSeason2)) return 'closed';
   return 'open';
 }
 
